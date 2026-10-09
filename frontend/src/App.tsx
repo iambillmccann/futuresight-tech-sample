@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   ArrowRight,
   CircleHelp,
@@ -14,7 +14,7 @@ import {
 type Review = {
   review_id: string
   author: string
-  date: string
+  date: string | null
   rating: number
   text: string
 }
@@ -22,9 +22,11 @@ type Review = {
 type DatasetSummary = {
   review_count: number
   average_rating: number
-  earliest_review: string
-  latest_review: string
+  earliest_review: string | null
+  latest_review: string | null
   rating_distribution: Record<string, number>
+  skipped_review_count: number
+  ingestion_status: 'complete' | 'partial'
 }
 
 type Analysis = {
@@ -40,6 +42,8 @@ type Analysis = {
     summary: DatasetSummary
   }
   cache_hit: boolean
+  fetched_at: string
+  warnings: string[]
 }
 
 type Message = {
@@ -48,10 +52,8 @@ type Message = {
   text: string
   timestamp: string
   evidence?: Review[]
+  status?: 'ok' | 'refused' | 'insufficient' | 'error'
 }
-
-const defaultUrl =
-  'https://www.google.com/maps/place/Blue+Bottle+Coffee+%E2%80%94+Mint+Plaza'
 
 const suggestionPrompts = [
   'What are the biggest complaints?',
@@ -67,59 +69,19 @@ function getStars(rating: number) {
 }
 
 function App() {
-  const [sourceUrl, setSourceUrl] = useState(defaultUrl)
+  const [sourceUrl, setSourceUrl] = useState('')
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const [question, setQuestion] = useState('')
   const [loading, setLoading] = useState(false)
+  const [asking, setAsking] = useState(false)
   const [error, setError] = useState('')
-  const [transcript, setTranscript] = useState<Message[]>([
-    {
-      id: 'seed-1',
-      role: 'question',
-      text: 'What do customers like most about this place?',
-      timestamp: '2:45 PM',
-    },
-    {
-      id: 'seed-2',
-      role: 'answer',
-      text:
-        'Customers most frequently praise the quality of the food and coffee, especially the eggs Benedict, brunch items, and overall atmosphere.',
-      timestamp: '2:45 PM',
-      evidence: [
-        {
-          review_id: 'r1',
-          author: 'Sarah M.',
-          date: '2024-01-18',
-          rating: 5,
-          text: 'Best sounding in the city! The eggs Benedict were perfectly poached.',
-        },
-      ],
-    },
-    {
-      id: 'seed-3',
-      role: 'question',
-      text: 'What are the most common complaints?',
-      timestamp: '2:48 PM',
-    },
-    {
-      id: 'seed-4',
-      role: 'answer',
-      text:
-        'The most common complaints are long wait times, higher prices, and noise during busy periods.',
-      timestamp: '2:48 PM',
-      evidence: [
-        {
-          review_id: 'r6',
-          author: 'Alex P.',
-          date: '2024-01-08',
-          rating: 2,
-          text: 'Usually a long wait, even on weekdays. Plan ahead.',
-        },
-      ],
-    },
-  ])
+  const [transcript, setTranscript] = useState<Message[]>([])
 
   const loadAnalysis = async (urlToAnalyze = sourceUrl) => {
+    if (!urlToAnalyze.trim()) {
+      setError('Enter a full Google Maps place URL to begin.')
+      return
+    }
     setLoading(true)
     setError('')
     try {
@@ -130,9 +92,10 @@ function App() {
       })
       const payload = await response.json()
       if (!response.ok) {
-        throw new Error(payload.detail || 'Unable to ingest source.')
+        throw new Error(payload.error?.message || 'Unable to ingest source.')
       }
-      setAnalysis(payload)
+      setAnalysis(payload.data)
+      setTranscript([])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to analyze the source.')
     } finally {
@@ -140,14 +103,11 @@ function App() {
     }
   }
 
-  useEffect(() => {
-    void loadAnalysis(defaultUrl)
-  }, [])
-
   const askQuestion = async (promptText?: string) => {
     const nextQuestion = (promptText ?? question).trim()
-    if (!nextQuestion || !analysis) return
+    if (!nextQuestion || !analysis || asking) return
 
+    setAsking(true)
     setQuestion('')
     setTranscript((current) => [
       ...current,
@@ -164,17 +124,20 @@ function App() {
         }),
       })
       const payload = await response.json()
-      if (!response.ok) throw new Error(payload.detail || 'Unable to answer question.')
+      if (!response.ok) {
+        throw new Error(payload.error?.message || 'Unable to answer question.')
+      }
 
-      const answerText = payload.answer
+      const answer = payload.data
       setTranscript((current) => [
         ...current,
         {
           id: `a-${Date.now() + 1}`,
           role: 'answer',
-          text: answerText,
+          text: answer.answer,
           timestamp: 'now',
-          evidence: payload.matching_reviews || [],
+          evidence: answer.matching_reviews || [],
+          status: answer.status,
         },
       ])
     } catch (err) {
@@ -186,9 +149,20 @@ function App() {
           text:
             err instanceof Error ? err.message : 'Unable to answer that question from the current dataset.',
           timestamp: 'now',
+          status: 'error',
         },
       ])
+    } finally {
+      setAsking(false)
     }
+  }
+
+  const startNewAnalysis = () => {
+    setSourceUrl('')
+    setAnalysis(null)
+    setTranscript([])
+    setQuestion('')
+    setError('')
   }
 
   const averageRating = useMemo(() => {
@@ -210,7 +184,10 @@ function App() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-900">
+            <button
+              onClick={startNewAnalysis}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
+            >
               <Plus className="h-4 w-4" />
               New Analysis
             </button>
@@ -240,7 +217,7 @@ function App() {
               <button
                 onClick={() => void loadAnalysis()}
                 className="inline-flex h-11 items-center justify-center rounded-md bg-[#5b4ad9] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4f41cc] disabled:opacity-60"
-                disabled={loading}
+                disabled={loading || !sourceUrl.trim()}
               >
                 {loading ? 'Analyzing…' : 'Analyze Reviews'}
               </button>
@@ -263,13 +240,28 @@ function App() {
                     </div>
                     <span className="font-medium text-slate-700">Analysis completed</span>
                     <span className="text-slate-400">•</span>
-                    <span>{new Date().toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+                    <span>{new Date(analysis.fetched_at).toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-emerald-700">
                     <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                    Active dataset
+                    {analysis.dataset.summary.ingestion_status === 'partial' ? 'Partial dataset' : 'Active dataset'}
                   </div>
                 </div>
+
+                {analysis.dataset.summary.skipped_review_count > 0 ? (
+                  <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                    {analysis.dataset.summary.skipped_review_count.toLocaleString()} malformed review
+                    {analysis.dataset.summary.skipped_review_count === 1 ? ' was' : 's were'} skipped during ingestion.
+                  </div>
+                ) : null}
+                {analysis.warnings.map((warning) => (
+                  <div
+                    key={warning}
+                    className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+                  >
+                    {warning}
+                  </div>
+                ))}
 
                 <div className="mt-4 grid gap-3 rounded-xl border border-slate-200 bg-white p-3 md:grid-cols-5">
                   <div className="rounded-lg bg-slate-50 p-3">
@@ -289,11 +281,11 @@ function App() {
                   </div>
                   <div className="rounded-lg bg-slate-50 p-3">
                     <div className="text-[11px] uppercase tracking-wide text-slate-500">Earliest review</div>
-                    <div className="mt-2 text-base font-semibold text-slate-900">{analysis.dataset.summary.earliest_review}</div>
+                    <div className="mt-2 text-base font-semibold text-slate-900">{analysis.dataset.summary.earliest_review ?? 'Unavailable'}</div>
                   </div>
                   <div className="rounded-lg bg-slate-50 p-3">
                     <div className="text-[11px] uppercase tracking-wide text-slate-500">Latest review</div>
-                    <div className="mt-2 text-base font-semibold text-slate-900">{analysis.dataset.summary.latest_review}</div>
+                    <div className="mt-2 text-base font-semibold text-slate-900">{analysis.dataset.summary.latest_review ?? 'Unavailable'}</div>
                   </div>
                   <div className="rounded-lg bg-slate-50 p-3">
                     <div className="text-[11px] uppercase tracking-wide text-slate-500">Platform</div>
@@ -328,7 +320,7 @@ function App() {
                               ))}
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-slate-600">{review.date}</td>
+                          <td className="px-4 py-3 text-slate-600">{review.date ?? 'Unavailable'}</td>
                           <td className="px-4 py-3 font-medium text-slate-800">{review.author}</td>
                           <td className="max-w-[760px] px-4 py-3 text-slate-700">“{review.text}”</td>
                         </tr>
@@ -351,10 +343,16 @@ function App() {
                     </span>
                   </div>
 
-                  <div className="px-4 py-4">
+                  <div className={`px-4 py-4 ${message.status === 'refused' ? 'bg-amber-50' : ''}`}>
                     <div className="flex gap-3">
                       <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-md bg-[#eef1ff] text-[#5b4ad9]">
-                        {message.role === 'question' ? <CircleHelp className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+                        {message.status === 'refused' ? (
+                          <ShieldAlert className="h-4 w-4 text-amber-700" />
+                        ) : message.role === 'question' ? (
+                          <CircleHelp className="h-4 w-4" />
+                        ) : (
+                          <Sparkles className="h-4 w-4" />
+                        )}
                       </div>
                       <div className="flex-1">
                         <div className="text-[15px] leading-7 text-slate-900">{message.text}</div>
@@ -403,8 +401,10 @@ function App() {
               <button
                 onClick={() => void askQuestion()}
                 className="inline-flex h-12 items-center justify-center rounded-xl bg-[#5b4ad9] px-4 text-white shadow-sm transition hover:bg-[#4f41cc]"
+                disabled={!analysis || asking || !question.trim()}
+                aria-label="Submit question"
               >
-                <ArrowRight className="h-4 w-4" />
+                {asking ? <span className="text-sm">Thinking…</span> : <ArrowRight className="h-4 w-4" />}
               </button>
             </div>
 
@@ -413,6 +413,7 @@ function App() {
                 <button
                   key={prompt}
                   onClick={() => void askQuestion(prompt)}
+                  disabled={!analysis || asking}
                   className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
                 >
                   {prompt}
@@ -449,7 +450,7 @@ function App() {
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                   <div className="text-[11px] uppercase tracking-wide text-slate-500">Date range</div>
                   <div className="mt-2 text-base font-semibold text-slate-900">
-                    {analysis.dataset.summary.earliest_review} - {analysis.dataset.summary.latest_review}
+                    {analysis.dataset.summary.earliest_review ?? 'Unavailable'} - {analysis.dataset.summary.latest_review ?? 'Unavailable'}
                   </div>
                 </div>
               </div>
