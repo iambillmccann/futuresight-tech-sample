@@ -142,6 +142,11 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 
+# Python virtual environments
+.venv/
+.venv
+.pytest_cache/
+
 # Astro generated types
 .astro/
 
