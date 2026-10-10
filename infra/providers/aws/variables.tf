@@ -5,9 +5,14 @@ variable "aws_region" {
 }
 
 variable "name_prefix" {
-  description = "Lowercase resource name prefix."
+  description = "Resource name prefix: 1-25 lowercase letters, digits, or hyphens, starting with a letter or digit."
   type        = string
   default     = "reviewlens-cloud-dev"
+
+  validation {
+    condition     = can(regex("^[a-z0-9][a-z0-9-]{0,24}$", var.name_prefix))
+    error_message = "name_prefix must be 1-25 lowercase letters, digits, or hyphens, starting with a letter or digit, so the App Runner scaling configuration name stays within 32 characters."
+  }
 }
 
 variable "enable_backend" {

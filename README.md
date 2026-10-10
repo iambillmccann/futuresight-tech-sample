@@ -95,6 +95,11 @@ The AWS adapter is in [`infra/providers/aws`](./infra/providers/aws). It uses:
 - **An encrypted, versioned S3 bucket with native lock files** for Terraform state. The bootstrap bucket is intentionally retained during app teardown.
 
 No PostgreSQL migration is needed: this milestone intentionally has no database.
+The default resource prefix is `reviewlens-cloud-dev`. Custom `name_prefix`
+values must be 1-25 lowercase letters, digits, or hyphens and start with a
+letter or digit, keeping the App Runner scaling configuration within its
+32-character name limit. CI checks these limits with mocked Terraform tests
+without AWS credentials.
 The API is accessed through the frontend's CloudFront origin, keeping requests
 same-origin. The App Runner health endpoint is also available directly for
 smoke testing.

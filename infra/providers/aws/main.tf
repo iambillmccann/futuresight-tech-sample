@@ -92,7 +92,7 @@ resource "aws_iam_role_policy" "apprunner_secrets" {
 }
 
 resource "aws_apprunner_auto_scaling_configuration_version" "single_instance" {
-  auto_scaling_configuration_name = "${var.name_prefix}-single-instance"
+  auto_scaling_configuration_name = "${var.name_prefix}-single"
   max_concurrency                 = 100
   min_size                        = 1
   max_size                        = 1

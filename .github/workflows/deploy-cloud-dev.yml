@@ -57,6 +57,7 @@ jobs:
           terraform fmt -check -recursive
           terraform init -backend=false
           terraform validate
+          terraform test
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4

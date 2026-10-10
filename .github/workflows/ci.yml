@@ -26,3 +26,13 @@ jobs:
         working-directory: frontend
       - run: npm run build
         working-directory: frontend
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+      - name: Verify AWS infrastructure without cloud credentials
+        working-directory: infra/providers/aws
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false
+          terraform validate
+          terraform test
