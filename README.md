@@ -19,7 +19,7 @@ Each Q&A call resolves the active source key from the backend cache. The version
 ## Prerequisites
 
 - Python 3.8 or newer
-- Node.js 22 or newer
+- Node.js `^20.19.0` or `>=22.12.0` (required by Vite 8)
 - SerpApi API key with Google Maps access
 - OpenAI API key
 
