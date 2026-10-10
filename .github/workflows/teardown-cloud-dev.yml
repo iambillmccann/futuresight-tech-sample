@@ -1,0 +1,49 @@
+name: Tear down cloud development
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type destroy to remove the cloud development environment and its data.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: reviewlens-cloud-dev
+  cancel-in-progress: false
+
+jobs:
+  teardown:
+    if: github.ref == 'refs/heads/main' && inputs.confirm == 'destroy'
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Initialize remote Terraform state
+        working-directory: infra/providers/aws
+        run: |
+          account_id="$(aws sts get-caller-identity --query Account --output text)"
+          terraform init \
+            -backend-config="bucket=reviewlens-tfstate-${account_id}-${AWS_REGION}" \
+            -backend-config="region=$AWS_REGION"
+
+      - name: Destroy cloud development resources
+        working-directory: infra/providers/aws
+        run: terraform destroy -auto-approve -var="aws_region=$AWS_REGION"

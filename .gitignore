@@ -149,6 +149,13 @@ vite.config.ts.timestamp-*
 __pycache__/
 *.pyc
 
+# Terraform state and provider/plugin working data
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+
 # Astro generated types
 .astro/
 

@@ -1,0 +1,137 @@
+name: Deploy cloud development
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: reviewlens-cloud-dev
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Verify backend
+        run: |
+          pip install -r backend/requirements.txt
+          pytest backend/test_app.py -q
+
+      - name: Verify frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run lint
+          npm run build
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.10.5"
+
+      - name: Check Terraform formatting and configuration
+        working-directory: infra/providers/aws
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false
+          terraform validate
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Initialize remote Terraform state
+        id: terraform
+        working-directory: infra/providers/aws
+        run: |
+          account_id="$(aws sts get-caller-identity --query Account --output text)"
+          state_bucket="reviewlens-tfstate-${account_id}-${AWS_REGION}"
+          echo "state_bucket=$state_bucket" >> "$GITHUB_OUTPUT"
+          terraform init \
+            -backend-config="bucket=$state_bucket" \
+            -backend-config="region=$AWS_REGION"
+
+      - name: Provision deployment prerequisites
+        working-directory: infra/providers/aws
+        run: |
+          if ! terraform state list | grep -Fqx 'aws_apprunner_service.api[0]'; then
+            terraform apply -auto-approve \
+              -var="aws_region=$AWS_REGION" \
+              -var="enable_backend=false"
+          fi
+
+      - name: Confirm provider secrets are populated
+        working-directory: infra/providers/aws
+        run: |
+          for secret_name in "$(terraform output -raw serpapi_secret_name)" "$(terraform output -raw openai_secret_name)"; do
+            aws secretsmanager get-secret-value --secret-id "$secret_name" --query ARN --output text >/dev/null
+          done
+
+      - name: Log in to Amazon ECR
+        id: ecr
+        working-directory: infra/providers/aws
+        run: |
+          registry="$(terraform output -raw ecr_repository_url | cut -d/ -f1)"
+          aws ecr get-login-password --region "$AWS_REGION" |
+            docker login --username AWS --password-stdin "$registry"
+          echo "repository=$(terraform output -raw ecr_repository_url)" >> "$GITHUB_OUTPUT"
+
+      - name: Build and publish backend image
+        run: |
+          image="${{ steps.ecr.outputs.repository }}:${GITHUB_SHA}-${GITHUB_RUN_ATTEMPT}"
+          docker build --platform linux/amd64 --tag "$image" .
+          docker push "$image"
+
+      - name: Deploy backend and frontend hosting
+        working-directory: infra/providers/aws
+        run: |
+          terraform apply -auto-approve \
+            -var="aws_region=$AWS_REGION" \
+            -var="enable_backend=true" \
+            -var="image_tag=${GITHUB_SHA}-${GITHUB_RUN_ATTEMPT}"
+
+      - name: Publish frontend
+        working-directory: infra/providers/aws
+        run: |
+          bucket="$(terraform output -raw frontend_bucket)"
+          distribution="$(terraform output -raw cloudfront_distribution_id)"
+          aws s3 sync ../../../frontend/dist "s3://$bucket" --delete
+          invalidation_id="$(aws cloudfront create-invalidation \
+            --distribution-id "$distribution" \
+            --paths "/*" \
+            --query Invalidation.Id \
+            --output text)"
+          aws cloudfront wait invalidation-completed \
+            --distribution-id "$distribution" \
+            --id "$invalidation_id"
+
+      - name: Smoke test deployment
+        working-directory: infra/providers/aws
+        run: |
+          frontend_url="$(terraform output -raw frontend_url)"
+          backend_url="$(terraform output -raw backend_url)"
+          ./smoke-test.sh "$frontend_url" "$backend_url"
