@@ -2676,3 +2676,63 @@ I verified all three CloudFront managed policy IDs directly against AWS and corr
 **Don’t rerun the old failed job:** it checks out the old commit containing the incorrect ID.
 
 App Runner was successfully created and is now incurring hosting costs. Keep it in Terraform state—there’s no need to destroy it. The next deployment should update the backend image and proceed with CloudFront creation. No IAM policy changes are needed for this error.
+
+## Prompt
+
+Closer. But we're still not there ...
+
+```
+Run frontend_url="$(terraform output -raw frontend_url)"
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38098312754/job/114348772391#step:17:20)
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38098312754/job/114348772391#step:17:21)/home/runner/work/_temp/40dfc26b-aa53-40d2-aacd-ed2e85a292d4.sh: line 3: ./smoke-test.sh: Permission denied
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38098312754/job/114348772391#step:17:22)Error: Process completed with exit code 126.
+```
+
+## Response
+
+The deployment reached the smoke-test step, but GitHub cannot execute the script. I’ll change the workflow to invoke it with Bash explicitly so it doesn’t depend on the executable file mode being preserved.
+
+Read , lines 125 to 145
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/.github/workflows/deploy-cloud-dev.yml",
+"view_range": [
+125,
+145
+]
+}
+
+Read
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/infra/providers/aws/smoke-test.sh"
+}
+
+Ran terminal command: git status --short; git ls-files --stage infra/providers/aws/smoke-test.sh; bash -n infra/providers/aws/smoke-test.sh
+
+Edit
+
+Ran terminal command: export AWS_PROFILE=cornerstone AWS_REGION=us-east-1 AWS_DEFAULT_REGION=us-east-1; cd infra/providers/aws; frontend_url="$(terraform output -raw frontend_url)"; backend_url="$(terraform output -raw backend_url)"; bash ./smoke-test.sh "$frontend_url" "$backend_url"
+
+Ran terminal command: git diff --check; git diff -- .github/workflows/deploy-cloud-dev.yml
+
+Checked , no problems found
+
+The script is committed with mode **`100644`**, so it isn’t executable after GitHub checks it out.
+
+I fixed the `deployment workflow` to invoke Bash explicitly:
+
+```bash
+bash ./smoke-test.sh "$frontend_url" "$backend_url"
+```
+
+**I also ran the smoke test against your deployed AWS endpoints, and it passed:** the frontend and backend `/health`, `/ready`, and `/version` are reachable.
+
+### Next steps
+
+1. Commit and push the workflow fix to `main`.
+2. Use the new deployment run—not a rerun of the old commit.
+3. Open the frontend and verify real ingestion, cache reuse, grounded Q&A, and scope refusal.
+
+No AWS or IAM changes are needed. The deployment is reachable; this failure was only the script invocation.

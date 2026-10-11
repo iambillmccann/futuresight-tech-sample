@@ -135,4 +135,4 @@ jobs:
         run: |
           frontend_url="$(terraform output -raw frontend_url)"
           backend_url="$(terraform output -raw backend_url)"
-          ./smoke-test.sh "$frontend_url" "$backend_url"
+          bash ./smoke-test.sh "$frontend_url" "$backend_url"
