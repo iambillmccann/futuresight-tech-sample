@@ -1,14 +1,14 @@
 # ReviewLens AI
 
-ReviewLens AI is a public, local-first review intelligence workspace for Google Maps businesses. It retrieves real review data through SerpApi, computes an honest ingestion summary, and uses OpenAI to answer questions only from the active cached dataset.
+ReviewLens AI is a public, local-first review intelligence workspace for Google Maps businesses and Amazon products. It retrieves real review data through SerpApi, computes an honest ingestion summary, lets visitors browse, filter, refresh, and export the active dataset, and uses OpenAI to answer questions only from the active cached dataset with review evidence.
 
-Milestone 1 is intentionally anonymous and ephemeral: there are no accounts, saved analyses, databases, or durable chat histories.
+The application is intentionally anonymous and ephemeral: there are no accounts, saved analyses, databases, or durable chat histories. Refresh preserves a usable cache entry when the provider fails and merges unique prior review IDs when a refresh is partial. Amazon ingestion uses the limited customer reviews visible on a product page and is always marked partial.
 
 ## Architecture
 
 - **Frontend:** React, TypeScript, Vite, Tailwind CSS
 - **Backend:** FastAPI and Pydantic
-- **Review provider:** SerpApi Google Maps and Google Maps Reviews APIs
+- **Review provider:** SerpApi Google Maps, Google Maps Reviews, and Amazon Product APIs
 - **Q&A provider:** OpenAI Chat Completions API with structured JSON output
 - **Storage:** bounded, process-local TTL cache
 
@@ -18,15 +18,61 @@ routes `/api/*` to the backend, so browser requests stay same-origin and no
 production CORS allowlist is needed. There is no database, Redis, user login,
 durable review storage, or durable chat history.
 
-The backend validates a full `google.com/maps` URL and sends only derived search/provider identifiers to SerpApi. It never fetches the submitted URL. SerpApi records are normalized into a shared review model; malformed records are skipped and reported. The cache prefers the stable Place ID or SerpApi data ID returned by the provider and falls back to a normalized URL hash when an identifier is not present in the submitted URL.
+The backend validates a full `google.com/maps` place URL, a Google Maps share link, or a supported `amazon.com` product URL and sends only derived search/provider identifiers to the fixed SerpApi endpoint. It never fetches a submitted full URL. SerpApi records are normalized into a shared review model; malformed records are skipped and reported. Google Maps cache keys prefer the stable Place ID or SerpApi data ID and fall back to a normalized URL hash. Amazon keys include platform, marketplace, and ASIN (`amazon:amazon.com:asin:ASIN`), so product URL variants share a cache entry without colliding with Google Maps.
+
+### Google Maps share links
+
+Links copied from Google Maps' **Share** button (`https://maps.app.goo.gl/CODE`,
+or legacy `https://goo.gl/maps/CODE`) are resolved before ingestion. The backend
+rebuilds the link from its code on those fixed Google hosts (query strings,
+credentials, ports, and extra path segments are dropped or rejected), requests
+it without automatic redirects, reads only the `Location` header, and allows at
+most three hops. Each hop must be another share link or a destination that passes
+the normal `google.com/maps` validation; anything else is rejected without being
+fetched. The resolved place URL then follows the standard path, so a share link and
+the full URL for the same place share one cache entry. Expired links, redirect
+loops, and network failures return explicit errors. A shared directions link (or
+full directions URL) is analyzed as the first place in the route.
+
+### Amazon coverage
+
+SerpApi's [Amazon Product API](https://serpapi.com/amazon-product-api)
+(`engine=amazon_product`) provides individual reviews in
+`reviews_information.authors_reviews`. ReviewLens ingests only those customer
+text/rating records, not Amazon's generated review summary or aggregate rating.
+There is no documented review pagination in this endpoint: the dataset is always
+marked **partial**, with a visible coverage warning. Counts and average ratings
+describe the retrieved sample, not all reviews on Amazon. The visible reviews
+may include variants of the selected product.
+
+Supported URLs are `https://www.amazon.com/dp/ASIN`,
+`https://www.amazon.com/product-name/dp/ASIN`, and
+`https://www.amazon.com/gp/product/ASIN` (a 10-character alphanumeric ASIN).
+Only the US `amazon.com` marketplace is enabled. Short links, other marketplaces,
+search/review-list URLs, credentials, and custom ports are rejected.
+Missing text reviews, a mismatched returned ASIN, and provider failures produce
+explicit API errors rather than fabricated data. English review dates are
+normalized to ISO dates when recognized; otherwise the provider date is retained.
+When no usable customer reviews are available, the API returns HTTP 422 with
+`NO_USABLE_REVIEWS` and the message "Reviews are not available for this item.
+Please try another Amazon product." The frontend displays this message directly.
+If no stable provider review ID is supplied, a deterministic local record ID is
+generated from the ASIN, author, date, and text; it is not an Amazon review ID.
+
+This mechanism was verified with a live SerpApi request on October 11, 2026:
+product `B072MQ5BRX` returned 8 usable customer text reviews. Automated tests use
+mocked HTTP responses, not paid live calls.
 
 Each Q&A call resolves the active source key from the backend cache. The versioned system prompt names the current business and platform, treats review text as untrusted evidence, prohibits external knowledge, requires explicit refusals, and distinguishes insufficient evidence from an out-of-scope request. Review context, dataset size, request lengths, provider timeouts, and cache size are bounded.
+
+When information is missing, the prompt asks for plain-language responses beginning
+with "The reviews do not contain information about ..." rather than "review dataset".
 
 ## Prerequisites
 
 - Python 3.8 or newer
 - Node.js `^20.19.0` or `>=22.12.0` (required by Vite 8)
-- SerpApi API key with Google Maps access
+- SerpApi API key with Google Maps and/or Amazon Product access
 - OpenAI API key
 
 ## Configuration
@@ -82,7 +128,18 @@ npm ci
 npm run dev
 ```
 
-Open `http://localhost:5173`, paste a full Google Maps place URL, and select **Analyze Reviews**.
+Open `http://localhost:5173`, paste a full Google Maps place URL or supported Amazon product URL, and select **Analyze Reviews**. The platform is detected from the URL.
+
+In Q&A, press Return or click the arrow button to submit a question.
+Use Shift+Return to add a new line.
+
+Three charts below the metrics show star-rating distribution, weekly average
+rating, and weekly review counts for the full active cached review set, unaffected
+by browsing filters. Weeks start on Monday using the review's recorded calendar
+date. Unknown/missing dates are excluded from trends and counted in a note.
+Empty intervening weeks have zero reviews but no average rating (a gap in that
+line). These charts describe the collected sample, not the platform's entire
+review history. Weekly values are also available in expandable tables.
 
 ## AWS cloud development
 
@@ -213,7 +270,9 @@ Errors use:
 | `GET` | `/health` | Liveness |
 | `GET` | `/ready` | Local readiness |
 | `GET` | `/version` | API version |
-| `POST` | `/api/ingest` | Validate a Google Maps URL, retrieve reviews, and return source metadata plus a computed summary |
+| `POST` | `/api/ingest` | Validate a Google Maps or Amazon product URL, retrieve reviews, and return source metadata plus a computed summary |
+| `POST` | `/api/refresh` | Refresh an unexpired cached source without discarding the old dataset on provider failure |
+| `GET` | `/api/reviews` | Browse/filter/paginate active cached reviews (`source_key`, optional `rating`, `start_date`, `end_date`, `page`, `page_size`) |
 | `POST` | `/api/chat` | Ask a question against an unexpired `source_key` |
 
 Ingestion request:
@@ -221,6 +280,20 @@ Ingestion request:
 ```json
 {"source_url": "https://www.google.com/maps/place/..."}
 ```
+
+Amazon ingestion uses the same request shape:
+
+```json
+{"source_url": "https://www.amazon.com/dp/B072MQ5BRX"}
+```
+
+The response's `source.platform` is `Amazon` and `source.provider_id` is the ASIN.
+The shared `source.business_name` field contains the product title for Amazon.
+Summary, browsing, refresh, export, and Q&A use the same normalized dataset and
+platform-aware source key. The system prompt explicitly requires refusal for an
+unselected platform, even though both platforms are supported. A narrow
+application check also prevents explicit Amazon/Google Maps requests from
+relabeling the active platform's evidence if the model fails to refuse.
 
 Chat request:
 
@@ -231,27 +304,36 @@ Chat request:
 }
 ```
 
+Refresh request:
+
+```json
+{"source_key": "google-maps:place_id:..."}
+```
+
+Review browsing returns the exact source key, current page, page size, filtered review count, and normalized review records. An expired or evicted cache entry returns `DATASET_UNAVAILABLE`; it is never answered or exported from stale client-side state. The frontend exports reviews as CSV and the open, unsaved question/answer transcript as Markdown.
+
 Stable failures include invalid/unsupported URLs, missing or expired datasets, missing server configuration, provider rejection, throttling/quota exhaustion, malformed provider responses, and timeouts. Raw upstream bodies, credentials, and tracebacks are not returned.
 
 ## Validation
 
 ```bash
-.venv/bin/pytest backend/test_app.py -q
+.venv/bin/pytest backend/test_app.py backend/test_amazon.py -q
 .venv/bin/python -m compileall -q backend
 cd frontend
 npm run lint
 npm run build
 ```
 
-Tests use deterministic provider and model doubles; CI never depends on live SerpApi data or model wording. Coverage includes URL/SSRF validation, record normalization, computed summaries, cache hits and expiry, concurrent miss coalescing, source isolation, bounded model context, evidence validation, insufficient evidence, refusals, prompt injection boundaries, and sanitized provider failures.
+Tests use deterministic provider and model doubles; CI never depends on live SerpApi data or model wording. Coverage includes URL/SSRF validation, record normalization, computed summaries, cache hits and expiry, concurrent miss coalescing, source isolation, review filters and pagination, refresh failure preservation and partial-result merging, bounded model context, evidence identifiers, insufficient evidence, refusals, prompt injection boundaries, and sanitized provider failures.
 
 ## Assumptions and limitations
 
 - Google Maps is the only Milestone 1 platform.
-- A submitted URL must be a full `google.com/maps` location URL. Short-link resolution is deliberately excluded so the backend never follows user-controlled redirects.
+- A submitted URL must be a full `google.com/maps` location URL, a `maps.app.goo.gl`/`goo.gl/maps` share link, or a supported `amazon.com` product URL. Share links are resolved only by reading redirect headers from those fixed Google hosts, and every hop is revalidated; arbitrary redirects are never followed.
 - SerpApi determines available review coverage. `MAX_REVIEWS` bounds the exact normalized dataset used for both summary and Q&A.
 - Cache state is shared by anonymous visitors in one backend process and disappears on expiration, eviction, or restart.
 - Concurrent requests with the same submitted stable identifier or normalized URL share one in-flight ingestion. A previously resolved URL alias also reuses its stable provider-key entry.
 - The frontend transcript exists only in the open page and is reset when the active source changes.
 - Provider account quotas are authoritative; ReviewLens surfaces safe errors rather than implementing a second quota system.
-- Milestone 1 does not include AWS deployment, authentication, a database, exports, or Amazon ingestion.
+- Amazon support is a limited product-page sample, not full review-history ingestion. Only `amazon.com` is enabled.
+- Review browsing, manual refresh, and CSV/Markdown exports operate on the current process-local cache and do not create saved analyses or durable history.

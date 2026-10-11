@@ -38,7 +38,7 @@ jobs:
       - name: Verify backend
         run: |
           pip install -r backend/requirements.txt
-          pytest backend/test_app.py -q
+          pytest backend/test_app.py backend/test_amazon.py -q
 
       - name: Verify frontend
         working-directory: frontend
