@@ -497,7 +497,7 @@ const weeks = Array.from({length:8},(*, i)=>({week*start:`2026-0${1+Math.floor(i
 const analysis = { source:{source_key:'k',business_name:'Cafe',platform:'Google Maps',source_url:'https://maps.google.com/x'}, dataset:{ total_reviews:120, sample_reviews:[review(1),review(2)], summary:{review_count:120,average_rating:4.2,earliest_review:'2026-01-05',latest_review:'2026-02-26',rating_distribution:{'5':50,'4':30,'3':20,'2':10,'1':10},skipped_review_count:2,ingestion_status:'partial',weekly_reviews:weeks,undated_review_count:3}}, cache_hit:false, fetched_at:'2026-10-11T10:00:00Z', warnings:['Only the first 120 reviews were retrieved.'] };
 await page.route('**/api/ingest', r => r.fulfill({json:{data:analysis}}));
 await page.route('**/api/chat', r => r.fulfill({json:{data:{answer:'Customers praise the coffee but complain about slow weekend service.',status:'ok',matching_reviews:[review(3),review(4)]}}}));
-await page.route('**/api/reviews**', r => r.fulfill({json:{data:{reviews:Array.from({length:5},(*, i)=>review(i)),total_reviews:120}}}));
+await page.route('**/api/reviews**', r => r.fulfill({json:{data:{reviews:Array.from({length:5},(\*, i)=>review(i)),total_reviews:120}}}));
 await page.goto('http://localhost:4789/');
 await page.emulateMedia({ colorScheme: 'dark' });
 await page.setViewportSize({width:1400,height:900});
@@ -681,3 +681,188 @@ That's the cause: the dev server is serving the new `index.css` but still uses t
 **Fix:** stop the dev server in its terminal (Ctrl+C, process 509278) and run `npm run dev` again in `frontend/`, then hard-refresh the browser. I didn't kill it myself because it's running in your terminal.
 
 After the restart it should match what I tested on a fresh production build. I rendered a full analysis with mocked data in dark mode and checked all 183 visible text elements: no light backgrounds, and all pass WCAG AA contrast after a small fix to the dark gray shades in `index.css`. If you still see problems after restarting, send me the list and I'll go through it.
+
+## Prompt
+
+I am having trouble recording a video that meets these guidelines ...
+
+```
+Loom Demo (under 3 minutes): Walk us through what you built:
+○ Demo the full flow end-to-end (scraping → summary → Q&A → scope guard)
+○ Talk through your key design decisions and tradeoffs
+○ Call out anything you're proud of, and anything you'd do differently
+```
+
+I simply can't get this down to three minutes. Please write me a script for this purpose that I can recite in less than three minutes. I will swap out my opinions for things I am proud of or would do differently when I perform the script.
+
+## Response
+
+Read , lines 1 to 180
+Completed with input: {
+"path": "/home/iambillmccann/.vscode-server/data/agentSessionData/fd01f650-7146-427b-9d06-204cdbcd5f8c/attachments/f944867c-4e0d-4b16-bcd1-3a07473761cf/file_006-final-fixes-and-polish.md",
+"view_range": [
+1,
+180
+]
+}
+
+Search for `scrap|summar|Q&A|scope guard|scope|proud|different|tradeoff|decision|demo|Rev...`
+
+Search for `scope guard|scopeGuard|out of scope|outside.*scope|scrap|summary|ask.*questio...`
+
+Find files matching `**/*`
+
+Read
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/README.md"
+}
+
+Read
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/assessment-requirements.md"
+}
+
+Read
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/backend/main.py"
+}
+
+Read
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/backend/qa.py"
+}
+
+Read
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/backend/models.py"
+}
+
+Read
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/frontend/src/App.tsx"
+}
+
+Search for `^(#|##|###)|scope|Scrap|scrap|Q&A|questions|summar|architecture|tradeoff|cach...`
+
+Search for `^(async )?def |^@app|scope|refus|insufficient|system|prompt|summary|scrap|cac...`
+
+Search for `^(export )?(function|const|type|interface)|<h[1-4]|Ingest|Summary|Chat|review...`
+
+Search for `^(#|##|###)|scrap|Q&A|scope|design|decision|tradeoff|architecture|proud|diffe...`
+
+Read , lines 1 to 70
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/README.md",
+"view_range": [
+1,
+70
+]
+}
+
+Read , lines 125 to 143
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/README.md",
+"view_range": [
+125,
+143
+]
+}
+
+Read , lines 250 to 260
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/README.md",
+"view_range": [
+250,
+260
+]
+}
+
+Read , lines 145 to 252
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/backend/main.py",
+"view_range": [
+145,
+252
+]
+}
+
+Read
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/backend/qa.py"
+}
+
+Read , lines 430 to 645
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/frontend/src/App.tsx",
+"view_range": [
+430,
+645
+]
+}
+
+Search for `class ReviewQuestion|system_prompt|SCOPE|REFUSED|insufficient|Google Maps|Ama...`
+
+Search for `scope|outside|weather|competitor|reviews about|What|Q&A|Amazon|Google Maps|in...`
+
+Read , lines 1 to 180
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/backend/qa.py",
+"view_range": [
+1,
+180
+]
+}
+
+Read , lines 730 to 868
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/frontend/src/App.tsx",
+"view_range": [
+730,
+868
+]
+}
+
+## Loom script
+
+_About 250 spoken words; roughly 2 minutes at a steady pace, leaving time for the on-screen actions. Bracketed cues are not spoken._
+
+**[Show the app]**
+Hi, this is ReviewLens AI. It helps an analyst turn public customer reviews into evidence-backed answers, while keeping each analysis tied to one source.
+
+**[Paste a Google Maps place URL and select “Analyze Reviews.”]**
+I’ll start by analyzing this business. The backend validates the link, retrieves reviews through SerpApi, and normalizes the results. It reports what it actually collected rather than implying it has every review.
+
+**[Show the summary and charts.]**
+Here we can see the review count, average rating, date range, rating distribution, and weekly trends. If coverage is partial or any records were skipped, the app surfaces that too.
+
+**[Ask: “What do customers praise, and what frustrates them?” Show the answer and evidence.]**
+Now I’ll ask an in-scope question. The answer is grounded in the active reviews, with supporting review evidence shown alongside it.
+
+**[Ask: “What’s the weather there today?”]**
+And if I ask for something outside those reviews, the app declines instead of guessing. The model receives a review-only prompt and the active dataset; an additional check helps refuse questions about a different supported platform.
+
+For the design, I used React and TypeScript for the interface, FastAPI for the API, and a bounded, in-process cache instead of a database. That keeps the prototype simple and avoids durable storage, but analyses don’t persist across restarts. In the cloud setup, the frontend is served through CloudFront and the API runs on App Runner.
+
+One thing I’m proud of is **[your example]**. If I did this again, I’d **[what you’d change]**. That’s ReviewLens AI: scrape, summarize, ask, and stay in scope.
+
+## Prompt
+
+One last feature. When the user clicks the "How it works" button please display this link:
+
+https://www.loom.com/share/34358e9fff7949b1b3cf6959ff08360d
+
+In a new browser tab.
+
+## Response
+
+Search for `How it works`
+
+A link is semantically correct for navigation; I'll convert the button to an anchor with the same styling.
+
+Edit
+
+Ran terminal command: cd frontend && npm run lint 2>&1 | tail -5 && npm run build 2>&1 | tail -4
+
+Clicking **How it works** now opens your Loom video in a new browser tab. The frontend lint and build both pass; I didn't click it in a browser.
+
+In `App.tsx`, I changed it from a button to a link with the same styling. It opens https://www.loom.com/share/34358e9fff7949b1b3cf6959ff08360d and blocks the new tab from accessing the app page.

@@ -396,9 +396,14 @@ function App() {
               <Plus className="h-4 w-4" />
               New Analysis
             </button>
-            <button className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100">
+            <a
+              href="https://www.loom.com/share/34358e9fff7949b1b3cf6959ff08360d"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+            >
               How it works
-            </button>
+            </a>
           </div>
         </div>
       </header>
