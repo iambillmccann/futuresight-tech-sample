@@ -51,6 +51,7 @@ def review(review_id: str, text: str, rating: float = 5) -> Review:
         date="2026-09-01T12:00:00Z",
         rating=rating,
         text=text,
+        review_url=f"https://example.com/reviews/{review_id}",
     )
 
 
@@ -115,6 +116,7 @@ class FakeQuestionAnswerer:
                     date=reviews[0].date,
                     rating=reviews[0].rating,
                     text=reviews[0].text,
+                    review_url=reviews[0].review_url,
                 )
             ]
             if status == "ok"
@@ -203,6 +205,148 @@ def test_ingestion_summary_is_computed_from_exact_reviews(
         "skipped_review_count": 0,
         "ingestion_status": "complete",
     }
+
+
+def test_review_browsing_filters_paginates_and_preserves_source_links(
+    client: TestClient,
+) -> None:
+    source = ingest(client)
+    response = client.get(
+        "/api/reviews",
+        params={
+            "source_key": source["source"]["source_key"],
+            "rating": 3,
+            "start_date": "2026-09-01",
+            "end_date": "2026-09-01",
+            "page_size": 1,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["data"]["total_reviews"] == 1
+    assert response.json()["data"]["reviews"][0]["review_id"] == "alpha-2"
+    assert (
+        response.json()["data"]["reviews"][0]["review_url"]
+        == "https://example.com/reviews/alpha-2"
+    )
+
+
+def test_review_browsing_rejects_invalid_date_range_and_missing_cache(
+    client: TestClient,
+) -> None:
+    source = ingest(client)
+    invalid_range = client.get(
+        "/api/reviews",
+        params={
+            "source_key": source["source"]["source_key"],
+            "start_date": "2026-09-02",
+            "end_date": "2026-09-01",
+        },
+    )
+    missing = client.get(
+        "/api/reviews", params={"source_key": "google-maps:missing"}
+    )
+
+    assert invalid_range.status_code == 422
+    assert invalid_range.json()["error"]["code"] == "INVALID_DATE_RANGE"
+    assert missing.status_code == 404
+    assert missing.json()["error"]["code"] == "DATASET_UNAVAILABLE"
+
+
+def test_refresh_replaces_dataset_and_merges_partial_refresh_by_review_id() -> None:
+    class PartiallyRefreshingProvider:
+        calls = 0
+
+        def ingest(self, source_url: str) -> ProviderDataset:
+            self.calls += 1
+            if self.calls == 1:
+                return FakeIngestionProvider().ingest(source_url)
+            return ProviderDataset(
+                source=Source(
+                    source_key="google-maps:place_id:alpha-id",
+                    business_name="Alpha Cafe",
+                    source_url=source_url,
+                    provider_id="alpha-id",
+                ),
+                reviews=[review("alpha-new", "A newly posted review.", 4)],
+                skipped_review_count=1,
+                warnings=["Review retrieval stopped early."],
+            )
+
+    provider = PartiallyRefreshingProvider()
+    client = TestClient(
+        create_app(
+            settings=settings(),
+            ingestion_provider=provider,  # type: ignore[arg-type]
+            question_answerer=FakeQuestionAnswerer(),
+        )
+    )
+    source = ingest(client)
+    response = client.post(
+        "/api/refresh",
+        json={"source_key": source["source"]["source_key"]},
+    )
+
+    assert response.status_code == 200
+    refreshed = response.json()["data"]
+    assert refreshed["cache_hit"] is False
+    assert refreshed["dataset"]["total_reviews"] == 3
+    assert {item["review_id"] for item in refreshed["dataset"]["sample_reviews"]} == {
+        "alpha-new",
+        "alpha-1",
+        "alpha-2",
+    }
+    assert refreshed["dataset"]["summary"]["ingestion_status"] == "partial"
+    assert any("previous dataset were retained" in warning for warning in refreshed["warnings"])
+
+
+def test_failed_refresh_preserves_cached_dataset() -> None:
+    class FailsOnRefreshProvider:
+        calls = 0
+
+        def ingest(self, source_url: str) -> ProviderDataset:
+            self.calls += 1
+            if self.calls > 1:
+                raise ProviderError(
+                    "PROVIDER_UNAVAILABLE",
+                    "The review provider is temporarily unavailable.",
+                    502,
+                )
+            return FakeIngestionProvider().ingest(source_url)
+
+    answerer = FakeQuestionAnswerer()
+    client = TestClient(
+        create_app(
+            settings=settings(),
+            ingestion_provider=FailsOnRefreshProvider(),  # type: ignore[arg-type]
+            question_answerer=answerer,
+        )
+    )
+    source = ingest(client)
+    failed_refresh = client.post(
+        "/api/refresh",
+        json={"source_key": source["source"]["source_key"]},
+    )
+    chat = client.post(
+        "/api/chat",
+        json={
+            "source_key": source["source"]["source_key"],
+            "question": "What do customers say about coffee?",
+        },
+    )
+
+    assert failed_refresh.status_code == 502
+    assert chat.status_code == 200
+    assert answerer.calls[0][1][0].review_id == "alpha-1"
+
+
+def test_refresh_requires_an_active_dataset(client: TestClient) -> None:
+    response = client.post(
+        "/api/refresh",
+        json={"source_key": "google-maps:missing"},
+    )
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "DATASET_UNAVAILABLE"
 
 
 def test_cache_hit_avoids_second_provider_call(
@@ -532,6 +676,7 @@ def test_openai_adapter_uses_configured_model_bounded_active_context_and_evidenc
     assert "openai-secret" not in json.dumps(request["json"])
     assert "Excellent coffee and kind staff." in request["json"]["messages"][1]["content"]
     assert [item.review_id for item in answer.matching_reviews] == ["alpha-1"]
+    assert answer.matching_reviews[0].review_url == "https://example.com/reviews/alpha-1"
 
 
 def test_scope_prompt_handles_external_knowledge_and_prompt_injection() -> None:

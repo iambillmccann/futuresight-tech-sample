@@ -51,9 +51,11 @@ class ReviewDatasetCache:
         ttl_seconds: int,
         max_entries: int,
         clock: Callable[[], datetime] | None = None,
+        max_reviews: int = 200,
     ) -> None:
         self._ttl = timedelta(seconds=ttl_seconds)
         self._max_entries = max_entries
+        self._max_reviews = max_reviews
         self._clock = clock or (lambda: datetime.now(timezone.utc))
         self._entries: OrderedDict[str, CacheEntry] = OrderedDict()
         self._aliases: dict[str, str] = {}
@@ -91,20 +93,7 @@ class ReviewDatasetCache:
 
         try:
             provider_dataset = ingest()
-            now = self._clock()
-            summary = build_summary(provider_dataset)
-            result = IngestResult(
-                source=provider_dataset.source,
-                dataset=Dataset(
-                    total_reviews=len(provider_dataset.reviews),
-                    sample_reviews=provider_dataset.reviews,
-                    summary=summary,
-                ),
-                cache_hit=False,
-                fetched_at=now,
-                expires_at=now + self._ttl,
-                warnings=provider_dataset.warnings,
-            )
+            result = self._build_result(provider_dataset, self._clock())
             with self._lock:
                 existing = self._get_locked(provider_dataset.source.source_key)
                 if existing:
@@ -124,6 +113,98 @@ class ReviewDatasetCache:
         finally:
             with self._lock:
                 self._inflight.pop(hint_key, None)
+
+    def refresh(
+        self,
+        source_key: str,
+        ingest: Callable[[str], ProviderDataset],
+    ) -> IngestResult | None:
+        with self._lock:
+            previous = self._get_locked(source_key)
+            if previous is None:
+                return None
+            canonical_key = previous.source.source_key
+            future = self._inflight.get(canonical_key)
+            leader = future is None
+            if future is None:
+                future = Future()
+                self._inflight[canonical_key] = future
+
+        if not leader:
+            result = future.result()
+            return result.model_copy(update={"cache_hit": True})
+
+        try:
+            provider_dataset = ingest(previous.source.source_url)
+            if (
+                provider_dataset.warnings
+                or provider_dataset.skipped_review_count > 0
+            ):
+                provider_dataset = self._merge_partial_refresh(
+                    provider_dataset, previous
+                )
+            result = self._build_result(provider_dataset, self._clock())
+            with self._lock:
+                self._entries.pop(canonical_key, None)
+                self._entries[result.source.source_key] = CacheEntry(result=result)
+                self._entries.move_to_end(result.source.source_key)
+                self._aliases = {
+                    alias: (
+                        result.source.source_key
+                        if target == canonical_key
+                        else target
+                    )
+                    for alias, target in self._aliases.items()
+                }
+                self._evict_locked()
+            future.set_result(result)
+            return result
+        except BaseException as exc:
+            future.set_exception(exc)
+            raise
+        finally:
+            with self._lock:
+                self._inflight.pop(canonical_key, None)
+
+    def _build_result(
+        self, provider_dataset: ProviderDataset, now: datetime
+    ) -> IngestResult:
+        summary = build_summary(provider_dataset)
+        return IngestResult(
+            source=provider_dataset.source,
+            dataset=Dataset(
+                total_reviews=len(provider_dataset.reviews),
+                sample_reviews=provider_dataset.reviews,
+                summary=summary,
+            ),
+            cache_hit=False,
+            fetched_at=now,
+            expires_at=now + self._ttl,
+            warnings=provider_dataset.warnings,
+        )
+
+    def _merge_partial_refresh(
+        self, refreshed: ProviderDataset, previous: IngestResult
+    ) -> ProviderDataset:
+        reviews_by_id = {review.review_id: review for review in refreshed.reviews}
+        for review in previous.dataset.sample_reviews:
+            if len(reviews_by_id) >= self._max_reviews:
+                break
+            reviews_by_id.setdefault(review.review_id, review)
+        warnings = list(refreshed.warnings)
+        if len(reviews_by_id) > len(refreshed.reviews):
+            warnings.append(
+                "Reviews from the previous dataset were retained because refresh was partial."
+            )
+        return ProviderDataset(
+            source=refreshed.source,
+            reviews=list(reviews_by_id.values()),
+            skipped_review_count=(
+                refreshed.skipped_review_count
+                + previous.dataset.summary.skipped_review_count
+            ),
+            warnings=warnings,
+        )
 
     def _get_locked(self, source_key: str) -> IngestResult | None:
         canonical_key = self._aliases.get(source_key, source_key)

@@ -23,7 +23,7 @@ class Source(BaseModel):
 
     source_key: str
     business_name: str
-    platform: Literal["Google Maps"] = "Google Maps"
+    platform: Literal["Google Maps", "Amazon"] = "Google Maps"
     source_url: str
     provider_id: Optional[str] = None
 
@@ -63,6 +63,7 @@ class EvidenceReview(BaseModel):
     date: Optional[str]
     rating: float
     text: str
+    review_url: Optional[str] = None
 
 
 class ChatResult(BaseModel):
@@ -92,6 +93,20 @@ class ChatRequest(BaseModel):
     @field_validator("source_key", "question")
     @classmethod
     def strip_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Value cannot be blank.")
+        return value
+
+
+class RefreshRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    source_key: str = Field(min_length=1, max_length=512)
+
+    @field_validator("source_key")
+    @classmethod
+    def strip_source_key(cls, value: str) -> str:
         value = value.strip()
         if not value:
             raise ValueError("Value cannot be blank.")

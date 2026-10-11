@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from datetime import datetime
 from typing import Any
 from urllib.parse import parse_qs, unquote, urlencode, urlparse, urlunparse
 
@@ -81,7 +82,7 @@ def _search_query(source_url: str) -> str:
     )
 
 
-class SerpApiIngestionProvider:
+class SerpApiClient:
     def __init__(
         self,
         api_key: str,
@@ -94,6 +95,74 @@ class SerpApiIngestionProvider:
         self._max_reviews = max_reviews
         self._client = client or httpx.Client(timeout=timeout_seconds)
 
+    def _request(self, params: dict[str, Any]) -> dict[str, Any]:
+        try:
+            response = self._client.get(
+                SERPAPI_URL,
+                params={**params, "api_key": self._api_key},
+                timeout=self._timeout,
+            )
+        except httpx.TimeoutException as exc:
+            raise ProviderError(
+                "PROVIDER_TIMEOUT",
+                "The review provider timed out. Please try again.",
+                504,
+            ) from exc
+        except httpx.RequestError as exc:
+            raise ProviderError(
+                "PROVIDER_UNAVAILABLE",
+                "The review provider is temporarily unavailable.",
+                502,
+            ) from exc
+
+        if response.status_code == 401:
+            raise ProviderError(
+                "PROVIDER_AUTHENTICATION_FAILED",
+                "The review provider credentials are invalid. Please contact the app administrator.",
+                503,
+            )
+        if response.status_code == 429:
+            raise ProviderError(
+                "PROVIDER_QUOTA_EXCEEDED",
+                "The review provider rate limit or quota was reached. Please try later.",
+                503,
+            )
+        if response.status_code >= 500:
+            raise ProviderError(
+                "PROVIDER_UNAVAILABLE",
+                "The review provider is temporarily unavailable.",
+                502,
+            )
+        if response.status_code >= 400:
+            raise ProviderError(
+                "PROVIDER_REJECTED_SOURCE",
+                "The review provider could not process that source.",
+                422,
+            )
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            raise ProviderError(
+                "PROVIDER_MALFORMED_RESPONSE",
+                "The review provider returned an invalid response.",
+                502,
+            ) from exc
+        if not isinstance(payload, dict):
+            raise ProviderError(
+                "PROVIDER_MALFORMED_RESPONSE",
+                "The review provider returned an invalid response.",
+                502,
+            )
+        if payload.get("error"):
+            raise ProviderError(
+                "PROVIDER_REJECTED_SOURCE",
+                "The review provider could not process that source.",
+                422,
+            )
+        return payload
+
+
+class SerpApiIngestionProvider(SerpApiClient):
     def ingest(self, source_url: str) -> ProviderDataset:
         validate_google_maps_url(source_url)
         if not self._api_key:
@@ -217,72 +286,6 @@ class SerpApiIngestionProvider:
             candidate.get("title") or candidate.get("name") or _search_query(source_url)
         )
 
-    def _request(self, params: dict[str, Any]) -> dict[str, Any]:
-        try:
-            response = self._client.get(
-                SERPAPI_URL,
-                params={**params, "api_key": self._api_key},
-                timeout=self._timeout,
-            )
-        except httpx.TimeoutException as exc:
-            raise ProviderError(
-                "PROVIDER_TIMEOUT",
-                "The review provider timed out. Please try again.",
-                504,
-            ) from exc
-        except httpx.RequestError as exc:
-            raise ProviderError(
-                "PROVIDER_UNAVAILABLE",
-                "The review provider is temporarily unavailable.",
-                502,
-            ) from exc
-
-        if response.status_code == 401:
-            raise ProviderError(
-                "PROVIDER_AUTHENTICATION_FAILED",
-                "The review provider credentials are invalid. Please contact the app administrator.",
-                503,
-            )
-        if response.status_code == 429:
-            raise ProviderError(
-                "PROVIDER_QUOTA_EXCEEDED",
-                "The review provider rate limit or quota was reached. Please try later.",
-                503,
-            )
-        if response.status_code >= 500:
-            raise ProviderError(
-                "PROVIDER_UNAVAILABLE",
-                "The review provider is temporarily unavailable.",
-                502,
-            )
-        if response.status_code >= 400:
-            raise ProviderError(
-                "PROVIDER_REJECTED_SOURCE",
-                "The review provider could not process that source.",
-                422,
-            )
-        try:
-            payload = response.json()
-        except ValueError as exc:
-            raise ProviderError(
-                "PROVIDER_MALFORMED_RESPONSE",
-                "The review provider returned an invalid response.",
-                502,
-            ) from exc
-        if not isinstance(payload, dict):
-            raise ProviderError(
-                "PROVIDER_MALFORMED_RESPONSE",
-                "The review provider returned an invalid response.",
-                502,
-            )
-        if payload.get("error"):
-            raise ProviderError(
-                "PROVIDER_REJECTED_SOURCE",
-                "The review provider could not process that source.",
-                422,
-            )
-        return payload
-
     @staticmethod
     def _normalize_review(raw_review: Any) -> Review | None:
         if not isinstance(raw_review, dict):
@@ -308,4 +311,169 @@ class SerpApiIngestionProvider:
             rating=float(rating),
             text=text.strip()[:5_000],
             review_url=raw_review.get("link"),
+        )
+
+
+def amazon_product_asin(source_url: str) -> str:
+    try:
+        parsed = urlparse(source_url)
+        valid = (
+            parsed.scheme in {"http", "https"}
+            and parsed.hostname in {"amazon.com", "www.amazon.com"}
+            and not parsed.username
+            and not parsed.password
+            and parsed.port in {None, 80, 443}
+        )
+    except ValueError as exc:
+        raise InvalidSourceError("The Amazon product URL is invalid.") from exc
+    if not valid:
+        raise InvalidSourceError(
+            "Use a full amazon.com product URL without credentials or custom ports."
+        )
+    match = re.fullmatch(
+        r"/(?:[^/]+/)?dp/([A-Za-z0-9]{10})(?:/.*)?"
+        r"|/gp/product/([A-Za-z0-9]{10})(?:/.*)?",
+        parsed.path,
+    )
+    if not match:
+        raise InvalidSourceError(
+            "Use an amazon.com product URL containing /dp/ASIN or /gp/product/ASIN."
+        )
+    return (match.group(1) or match.group(2)).upper()
+
+
+def is_amazon_source(source_url: str) -> bool:
+    try:
+        return urlparse(source_url).hostname in {"amazon.com", "www.amazon.com"}
+    except ValueError as exc:
+        raise InvalidSourceError("The source URL is invalid.") from exc
+
+
+def amazon_source_key(asin: str) -> str:
+    return f"amazon:amazon.com:asin:{asin}"
+
+
+class SerpApiAmazonIngestionProvider(SerpApiClient):
+    def ingest(self, source_url: str) -> ProviderDataset:
+        asin = amazon_product_asin(source_url)
+        if not self._api_key:
+            raise ConfigurationError("SERPAPI_API_KEY")
+        payload = self._request(
+            {
+                "engine": "amazon_product",
+                "asin": asin,
+                "amazon_domain": "amazon.com",
+                "language": "en_US",
+            }
+        )
+        product = payload.get("product_results")
+        if (
+            not isinstance(product, dict)
+            or product.get("asin") != asin
+            or not isinstance(product.get("title"), str)
+            or not product["title"].strip()
+        ):
+            raise ProviderError(
+                "PROVIDER_MALFORMED_RESPONSE",
+                "The review provider did not return the requested Amazon product.",
+                502,
+            )
+        information = payload.get("reviews_information", {})
+        if not isinstance(information, dict):
+            raise ProviderError(
+                "PROVIDER_MALFORMED_RESPONSE",
+                "The review provider returned invalid Amazon review data.",
+                502,
+            )
+        raw_reviews = information.get("authors_reviews", [])
+        if not isinstance(raw_reviews, list):
+            raise ProviderError(
+                "PROVIDER_MALFORMED_RESPONSE",
+                "The review provider returned invalid Amazon review data.",
+                502,
+            )
+        reviews_by_id: dict[str, Review] = {}
+        skipped = 0
+        for raw_review in raw_reviews:
+            normalized = self._normalize_amazon_review(raw_review, asin)
+            if normalized is None:
+                skipped += 1
+                continue
+            reviews_by_id.setdefault(normalized.review_id, normalized)
+            if len(reviews_by_id) >= self._max_reviews:
+                break
+        if not reviews_by_id:
+            raise ProviderError(
+                "NO_USABLE_REVIEWS",
+                "Reviews are not available for this item. Please try another Amazon product or Google Maps location.",
+                422,
+            )
+        return ProviderDataset(
+            source=Source(
+                source_key=amazon_source_key(asin),
+                business_name=product["title"].strip(),
+                platform="Amazon",
+                source_url=f"https://www.amazon.com/dp/{asin}",
+                provider_id=asin,
+            ),
+            reviews=list(reviews_by_id.values()),
+            skipped_review_count=skipped,
+            warnings=[
+                "Limited Amazon coverage: only customer reviews visible on the product "
+                "page were retrieved. This is not the full review history; counts and "
+                "ratings describe only the cached sample. Reviews may cover product variants."
+            ],
+        )
+
+    @staticmethod
+    def _normalize_amazon_review(raw_review: Any, asin: str) -> Review | None:
+        if not isinstance(raw_review, dict):
+            return None
+        text = raw_review.get("text")
+        rating = raw_review.get("rating")
+        if (
+            not isinstance(text, str)
+            or not text.strip()
+            or isinstance(rating, bool)
+            or not isinstance(rating, (int, float))
+            or not 1 <= rating <= 5
+        ):
+            return None
+        author = raw_review.get("author")
+        author = author if isinstance(author, str) and author.strip() else "Anonymous reviewer"
+        raw_date = raw_review.get("date")
+        date = raw_date if isinstance(raw_date, str) and raw_date.strip() else None
+        if date:
+            try:
+                date = datetime.strptime(date, "%B %d, %Y").date().isoformat()
+            except ValueError:
+                pass  # Preserve unrecognized provider dates without inventing one.
+        link = raw_review.get("link")
+        review_url = None
+        if isinstance(link, str):
+            try:
+                parsed = urlparse(link)
+                if (
+                    parsed.scheme == "https"
+                    and parsed.hostname in {"amazon.com", "www.amazon.com"}
+                    and not parsed.username
+                    and not parsed.password
+                    and parsed.port in {None, 443}
+                ):
+                    review_url = link
+            except ValueError:
+                pass  # An unusable source link does not invalidate the review text.
+        identity = f"{asin}|{author}|{date}|{text.strip()}".encode()
+        review_id = raw_review.get("review_id")
+        return Review(
+            review_id=(
+                review_id
+                if isinstance(review_id, str) and review_id.strip()
+                else hashlib.sha256(identity).hexdigest()[:24]
+            ),
+            author=author,
+            date=date,
+            rating=float(rating),
+            text=text.strip()[:5_000],
+            review_url=review_url,
         )
