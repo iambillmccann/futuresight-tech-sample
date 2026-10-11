@@ -1873,3 +1873,806 @@ aws accessanalyzer validate-policy \
 ```
 
 That check requires `access-analyzer:ValidatePolicy` on your administrative identity; it is deliberately not added to the deployment role. It validates the policy but does not prove that account-level controls will allow deployment.
+
+## Prompt
+
+The deploy failed with the following error ...
+
+```
+Run aws-actions/configure-aws-credentials@v4
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:2)  with:
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:3)    role-to-assume: arn:aws:iam::098295335350:role/reviewlens-github-deploy
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:4)    aws-region: us-east-1
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:5)    audience: sts.amazonaws.com
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:6)    output-env-credentials: true
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:7)  env:
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:8)    AWS_REGION: us-east-1
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:9)    AWS_ROLE_ARN: arn:aws:iam::098295335350:role/reviewlens-github-deploy
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:10)    pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:11)    PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:12)    Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:13)    Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:14)    Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:15)    LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:16)    TERRAFORM_CLI_PATH: /home/runner/work/_temp/c51c4f0e-04fb-4d79-a7c0-e49d95337cfc
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:18)Assuming role with OIDC
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:19)Assuming role with OIDC
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:20)Assuming role with OIDC
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:21)Assuming role with OIDC
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:22)Assuming role with OIDC
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:23)Assuming role with OIDC
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:24)Assuming role with OIDC
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:25)Assuming role with OIDC
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:26)Assuming role with OIDC
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:27)Assuming role with OIDC
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:28)Assuming role with OIDC
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:29)Assuming role with OIDC
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114320397255#step:9:30)Error: Could not assume role with OIDC: Not authorized to perform sts:AssumeRoleWithWebIdentity
+```
+
+## Response
+
+This failure occurs before deployment permissions are used: AWS is rejecting the GitHub OIDC token when it tries to assume the role. I’ll check the run’s branch, workflow configuration, and the role’s trust policy to identify the mismatch.
+
+Get details of GitHub Actions resources (workflows, workflow runs, jobs, and artifacts)
+Completed with input: {
+"method": "get_workflow_run",
+"owner": "iambillmccann",
+"repo": "futuresight-tech-sample",
+"resource_id": "38088663566"
+}
+
+Read
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/.github/workflows/deploy-cloud-dev.yml"
+}
+
+Ran terminal command: aws iam get-role --profile cornerstone --role-name reviewlens-github-deploy --query 'Role.{Arn:Arn,TrustPolicy:AssumeRolePolicyDocument}' --output json --no-cli-pager
+
+Ran terminal command: aws iam get-open-id-connect-provider --profile cornerstone --open-id-connect-provider-arn arn:aws:iam::098295335350:oidc-provider/token.actions.githubusercontent.com --output json --no-cli-pager; command -v gh || true
+
+Get file or directory contents
+Completed with input: {
+"owner": "iambillmccann",
+"repo": "futuresight-tech-sample",
+"path": ".github/workflows/deploy-cloud-dev.yml",
+"sha": "228722f19ad391778951fd13d0d4af4d8a3a8dc0"
+}
+
+Ran terminal command: aws cloudtrail lookup-events --profile cornerstone --region us-east-1 --lookup-attributes AttributeKey=EventName,AttributeValue=AssumeRoleWithWebIdentity --start-time 2026-10-10T21:42:00Z --end-time 2026-10-10T21:46:00Z --max-results 50 --output json --no-cli-pager | node -e 'let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>{const x=JSON.parse(s);for(const e of x.Events||[]){const c=JSON.parse(e.CloudTrailEvent);console.log(JSON.stringify({eventTime:c.eventTime,errorCode:c.errorCode,errorMessage:c.errorMessage,roleArn:c.requestParameters?.roleArn,identity:c.userIdentity},null,2));}})'
+
+I found the exact mismatch by checking your AWS role and the failed STS events in CloudTrail.
+
+**The GitHub token uses an ID-qualified subject, but the role trusts the older name-only subject.**
+
+Your role currently expects:
+
+```text
+repo:iambillmccann/futuresight-tech-sample:ref:refs/heads/main
+```
+
+CloudTrail shows that GitHub actually sent:
+
+```text
+repo:iambillmccann@107727512/futuresight-tech-sample@1410902547:ref:refs/heads/main
+```
+
+The audience and identity provider are correct, and the workflow ran on `main`. The subject mismatch is causing AWS to reject the request.
+
+## Fix the role’s trust policy
+
+In AWS Console:
+
+1. Open **IAM → Roles → reviewlens-github-deploy**.
+2. Select **Trust relationships → Edit trust policy**.
+3. Replace the current policy with:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::098295335350:oidc-provider/token.actions.githubusercontent.com"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+          "token.actions.githubusercontent.com:sub": "repo:iambillmccann@107727512/futuresight-tech-sample@1410902547:ref:refs/heads/main"
+        }
+      }
+    }
+  ]
+}
+```
+
+4. Save the change.
+5. Wait briefly for IAM propagation.
+6. In GitHub Actions, open the failed deployment and select **Re-run failed jobs**.
+
+This keeps access restricted to your exact repository identity and `main` branch—**no wildcard is needed**.
+
+## What does not need changing
+
+- The customer-managed deployment permissions policy.
+- `AWS_ROLE_ARN` or `AWS_REGION`.
+- The GitHub OIDC provider.
+- The workflow’s `id-token: write` permission.
+
+`sts:AssumeRoleWithWebIdentity` belongs in the role’s **trust policy**, not its deployment permissions policy.
+
+I inspected the AWS configuration read-only; I haven’t changed the role. The earlier name-only trust example I supplied didn’t match the subject format used by your repository.
+
+## Prompt
+
+We went a little further, but it still failed ...
+
+```
+Run for secret_name in "$(terraform output -raw serpapi_secret_name)" "$(terraform output -raw openai_secret_name)"; do
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114323608799#step:12:2)  for secret_name in "$(terraform output -raw serpapi_secret_name)" "$(terraform output -raw openai_secret_name)"; do
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114323608799#step:12:3)    aws secretsmanager get-secret-value --secret-id "$secret_name" --query ARN --output text >/dev/null
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114323608799#step:12:4)  done
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114323608799#step:12:5)  shell: /usr/bin/bash -e {0}
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114323608799#step:12:6)  env:
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114323608799#step:12:7)    AWS_REGION: us-east-1
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114323608799#step:12:8)    AWS_ROLE_ARN: arn:aws:iam::098295335350:role/reviewlens-github-deploy
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114323608799#step:12:9)    pythonLocation: /opt/hostedtoolcache/Python/3.12.15/x64
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114323608799#step:12:10)    PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib/pkgconfig
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114323608799#step:12:11)    Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114323608799#step:12:12)    Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114323608799#step:12:13)    Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.15/x64
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114323608799#step:12:14)    LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.15/x64/lib
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114323608799#step:12:15)    TERRAFORM_CLI_PATH: /home/runner/work/_temp/f6497403-becc-4ab1-a104-bf3afa7d490b
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114323608799#step:12:16)    AWS_DEFAULT_REGION: us-east-1
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114323608799#step:12:17)    AWS_ACCESS_KEY_ID: ***
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114323608799#step:12:18)    AWS_SECRET_ACCESS_KEY: ***
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114323608799#step:12:19)    AWS_SESSION_TOKEN: ***
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114323608799#step:12:20)
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114323608799#step:12:22)aws: [ERROR]: An error occurred (ResourceNotFoundException) when calling the GetSecretValue operation: Secrets Manager can't find the specified secret value for staging label: AWSCURRENT
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38088663566/job/114323608799#step:12:23)Error: Process completed with exit code 254.
+```
+
+## Prompt
+
+That worked. But the deploy failed again ...
+
+```
+Run terraform apply -auto-approve \
+data.aws_caller_identity.current: Reading...
+aws_secretsmanager_secret.openai: Refreshing state... [id=arn:aws:secretsmanager:us-east-1:098295335350:secret:reviewlens-cloud-dev/openai-api-key-l7bFzQ]
+aws_secretsmanager_secret.serpapi: Refreshing state... [id=arn:aws:secretsmanager:us-east-1:098295335350:secret:reviewlens-cloud-dev/serpapi-api-key-N9lYUR]
+aws_apprunner_auto_scaling_configuration_version.single_instance: Refreshing state... [id=arn:aws:apprunner:us-east-1:098295335350:autoscalingconfiguration/reviewlens-cloud-dev-single/1/4abecbf18995404d835e8b8d4eeb61fb]
+aws_iam_role.apprunner_instance: Refreshing state... [id=reviewlens-cloud-dev-apprunner-instance]
+aws_cloudfront_origin_access_control.frontend: Refreshing state... [id=E3P6VQD6E0QTY]
+aws_iam_role.apprunner_ecr_access: Refreshing state... [id=reviewlens-cloud-dev-apprunner-ecr-access]
+aws_ecr_repository.api: Refreshing state... [id=reviewlens-cloud-dev-api]
+data.aws_caller_identity.current: Read complete after 0s [id=098295335350]
+aws_s3_bucket.frontend: Refreshing state... [id=reviewlens-cloud-dev-098295335350-us-east-1]
+aws_ecr_lifecycle_policy.api: Refreshing state... [id=reviewlens-cloud-dev-api]
+aws_iam_role_policy_attachment.apprunner_ecr_access: Refreshing state... [id=reviewlens-cloud-dev-apprunner-ecr-access-20261010162202413100000003]
+aws_iam_role_policy.apprunner_secrets: Refreshing state... [id=reviewlens-cloud-dev-apprunner-instance:reviewlens-cloud-dev-read-runtime-secrets]
+aws_s3_bucket_public_access_block.frontend: Refreshing state... [id=reviewlens-cloud-dev-098295335350-us-east-1]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # aws_apprunner_service.api[0] will be created
+  + resource "aws_apprunner_service" "api" {
+      + arn                            = (known after apply)
+      + auto_scaling_configuration_arn = "arn:aws:apprunner:us-east-1:098295335350:autoscalingconfiguration/reviewlens-cloud-dev-single/1/4abecbf18995404d835e8b8d4eeb61fb"
+      + id                             = (known after apply)
+      + service_id                     = (known after apply)
+      + service_name                   = "reviewlens-cloud-dev-api"
+      + service_url                    = (known after apply)
+      + status                         = (known after apply)
+      + tags                           = {
+          + "application" = "reviewlens"
+          + "environment" = "cloud-dev"
+          + "managed_by"  = "terraform"
+        }
+      + tags_all                       = {
+          + "application" = "reviewlens"
+          + "environment" = "cloud-dev"
+          + "managed_by"  = "terraform"
+        }
+
+      + health_check_configuration {
+          + healthy_threshold   = 1
+          + interval            = 10
+          + path                = "/health"
+          + protocol            = "HTTP"
+          + timeout             = 5
+          + unhealthy_threshold = 5
+        }
+
+      + instance_configuration {
+          + cpu               = "0.25 vCPU"
+          + instance_role_arn = "arn:aws:iam::098295335350:role/reviewlens-cloud-dev-apprunner-instance"
+          + memory            = "0.5 GB"
+        }
+
+      + network_configuration (known after apply)
+
+      + source_configuration {
+          + auto_deployments_enabled = false
+
+          + authentication_configuration {
+              + access_role_arn = "arn:aws:iam::098295335350:role/reviewlens-cloud-dev-apprunner-ecr-access"
+            }
+
+          + image_repository {
+              + image_identifier      = "098295335350.dkr.ecr.us-east-1.amazonaws.com/reviewlens-cloud-dev-api:228722f19ad391778951fd13d0d4af4d8a3a8dc0-3"
+              + image_repository_type = "ECR"
+
+              + image_configuration {
+                  + port                          = "8000"
+                  + runtime_environment_secrets   = {
+                      + "OPENAI_API_KEY"  = "arn:aws:secretsmanager:us-east-1:098295335350:secret:reviewlens-cloud-dev/openai-api-key-l7bFzQ"
+                      + "SERPAPI_API_KEY" = "arn:aws:secretsmanager:us-east-1:098295335350:secret:reviewlens-cloud-dev/serpapi-api-key-N9lYUR"
+                    }
+                  + runtime_environment_variables = {
+                      + "CACHE_MAX_ENTRIES"        = "50"
+                      + "CACHE_TTL_SECONDS"        = "86400"
+                      + "CORS_ORIGINS"             = null
+                      + "MAX_REVIEWS"              = "200"
+                      + "MODEL_CONTEXT_CHARS"      = "60000"
+                      + "OPENAI_MODEL"             = "gpt-4.1-mini"
+                      + "PROVIDER_TIMEOUT_SECONDS" = "20"
+                    }
+                }
+            }
+        }
+    }
+
+  # aws_cloudfront_distribution.frontend[0] will be created
+  + resource "aws_cloudfront_distribution" "frontend" {
+      + arn                             = (known after apply)
+      + caller_reference                = (known after apply)
+      + continuous_deployment_policy_id = (known after apply)
+      + default_root_object             = "index.html"
+      + domain_name                     = (known after apply)
+      + enabled                         = true
+      + etag                            = (known after apply)
+      + hosted_zone_id                  = (known after apply)
+      + http_version                    = "http2and3"
+      + id                              = (known after apply)
+      + in_progress_validation_batches  = (known after apply)
+      + is_ipv6_enabled                 = false
+      + last_modified_time              = (known after apply)
+      + price_class                     = "PriceClass_100"
+      + retain_on_delete                = false
+      + staging                         = false
+      + status                          = (known after apply)
+      + tags                            = {
+          + "application" = "reviewlens"
+          + "environment" = "cloud-dev"
+          + "managed_by"  = "terraform"
+        }
+      + tags_all                        = {
+          + "application" = "reviewlens"
+          + "environment" = "cloud-dev"
+          + "managed_by"  = "terraform"
+        }
+      + trusted_key_groups              = (known after apply)
+      + trusted_signers                 = (known after apply)
+      + wait_for_deployment             = true
+
+      + default_cache_behavior {
+          + allowed_methods        = [
+              + "GET",
+              + "HEAD",
+            ]
+          + cache_policy_id        = "658327ea-f89d-4fab-a63d-7e88639e58f6"
+          + cached_methods         = [
+              + "GET",
+              + "HEAD",
+            ]
+          + compress               = true
+          + default_ttl            = (known after apply)
+          + max_ttl                = (known after apply)
+          + min_ttl                = 0
+          + target_origin_id       = "reviewlens-frontend"
+          + trusted_key_groups     = (known after apply)
+          + trusted_signers        = (known after apply)
+          + viewer_protocol_policy = "redirect-to-https"
+
+          + grpc_config (known after apply)
+        }
+
+      + ordered_cache_behavior {
+          + allowed_methods          = [
+              + "DELETE",
+              + "GET",
+              + "HEAD",
+              + "OPTIONS",
+              + "PATCH",
+              + "POST",
+              + "PUT",
+            ]
+          + cache_policy_id          = "4135ea2d-6df8-44a3-9df9-4b5a84be39ad"
+          + cached_methods           = [
+              + "GET",
+              + "HEAD",
+            ]
+          + compress                 = true
+          + default_ttl              = (known after apply)
+          + max_ttl                  = (known after apply)
+          + min_ttl                  = 0
+          + origin_request_policy_id = "b689b0a8-53d0-40ab-baf2-68738e2966ac"
+          + path_pattern             = "api/*"
+          + target_origin_id         = "reviewlens-api"
+          + viewer_protocol_policy   = "redirect-to-https"
+
+          + grpc_config (known after apply)
+        }
+
+      + origin {
+          + connection_attempts      = 3
+          + connection_timeout       = 10
+          + domain_name              = (known after apply)
+          + origin_id                = "reviewlens-api"
+            # (2 unchanged attributes hidden)
+
+          + custom_origin_config {
+              + http_port                = 80
+              + https_port               = 443
+              + origin_keepalive_timeout = 5
+              + origin_protocol_policy   = "https-only"
+              + origin_read_timeout      = 30
+              + origin_ssl_protocols     = [
+                  + "TLSv1.2",
+                ]
+            }
+        }
+      + origin {
+          + connection_attempts      = 3
+          + connection_timeout       = 10
+          + domain_name              = "reviewlens-cloud-dev-098295335350-us-east-1.s3.us-east-1.amazonaws.com"
+          + origin_access_control_id = "E3P6VQD6E0QTY"
+          + origin_id                = "reviewlens-frontend"
+            # (1 unchanged attribute hidden)
+        }
+
+      + restrictions {
+          + geo_restriction {
+              + locations        = (known after apply)
+              + restriction_type = "none"
+            }
+        }
+
+      + viewer_certificate {
+          + cloudfront_default_certificate = true
+          + minimum_protocol_version       = "TLSv1.2_2021"
+        }
+    }
+
+  # aws_s3_bucket_policy.frontend[0] will be created
+  + resource "aws_s3_bucket_policy" "frontend" {
+      + bucket = "reviewlens-cloud-dev-098295335350-us-east-1"
+      + id     = (known after apply)
+      + policy = (known after apply)
+    }
+
+Plan: 3 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + backend_url                = (known after apply)
+  + cloudfront_distribution_id = (known after apply)
+  + frontend_url               = (known after apply)
+aws_apprunner_service.api[0]: Creating...
+╷
+│ Error: creating App Runner Service (reviewlens-cloud-dev-api): operation error AppRunner: CreateService, https response error StatusCode: 400, RequestID: 1c68a40f-fe7c-4430-a3d7-d2a0face656a, api error AccessDeniedException: User: arn:aws:sts::098295335350:assumed-role/reviewlens-github-deploy/GitHubActions is not authorized to perform: iam:PassRole on resource: arn:aws:iam::098295335350:role/reviewlens-cloud-dev-apprunner-instance because no identity-based policy allows the iam:PassRole action
+│
+│   with aws_apprunner_service.api[0],
+│   on main.tf line 102, in resource "aws_apprunner_service" "api":
+│  102: resource "aws_apprunner_service" "api" {
+│
+╵
+Error: Terraform exited with code 1.
+Error: Process completed with exit code 1.
+```
+
+## Response
+
+Read , lines 155 to 240
+Completed with input: {
+"path": "/home/iambillmccann/.vscode-server/data/agentSessionData/266cadb7-99a9-42b3-b72c-a7cfa3834d27/attachments/ea7df80c-ee64-4387-a23c-d3deffb57725/Pasted text #1.txt",
+"view_range": [
+155,
+240
+]
+}
+
+The new failure is `iam:PassRole` for the App Runner instance role. I’ll inspect the deployment role’s attached policy and the AWS failure event to see whether the permission is missing or its service condition is rejecting the request.
+
+Ran terminal command: aws iam list-attached-role-policies --profile cornerstone --role-name reviewlens-github-deploy --output json --no-cli-pager; aws iam list-role-policies --profile cornerstone --role-name reviewlens-github-deploy --output json --no-cli-pager
+
+Ran terminal command: version_id="$(aws iam get-policy --profile cornerstone --policy-arn arn:aws:iam::098295335350:policy/reviewlens-github-deployment-policy --query Policy.DefaultVersionId --output text --no-cli-pager)"; aws iam get-policy-version --profile cornerstone --policy-arn arn:aws:iam::098295335350:policy/reviewlens-github-deployment-policy --version-id "$version_id" --query 'PolicyVersion.Document.Statement' --output json --no-cli-pager | node -e 'let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>{for(const st of JSON.parse(s))if([].concat(st.Action).some(a=>a.includes("PassRole")))console.log(JSON.stringify(st,null,2));})'; aws cloudtrail lookup-events --profile cornerstone --region us-east-1 --lookup-attributes AttributeKey=EventName,AttributeValue=CreateService --start-time 2026-10-10T22:00:00Z --max-results 15 --output json --no-cli-pager | node -e 'let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>{for(const e of JSON.parse(s).Events||[]){const c=JSON.parse(e.CloudTrailEvent);if(c.eventSource==="apprunner.amazonaws.com")console.log(JSON.stringify({time:c.eventTime,error:c.errorMessage,request:c.requestParameters},null,2));}})'
+
+The attached deployment policy **does contain `iam:PassRole` for both correct roles**, but it restricts the permission with:
+
+```json
+"Condition": {
+  "StringEquals": {
+    "iam:PassedToService": "apprunner.amazonaws.com"
+  }
+}
+```
+
+That condition is not matching the instance-role handoff. CloudTrail confirms the denial, although it does not expose the evaluated `iam:PassedToService` value. The condition I previously supplied was too restrictive for this deployment.
+
+## Fix the customer-managed permissions policy
+
+Open:
+
+**IAM → Policies → reviewlens-github-deployment-policy → Edit → JSON**
+
+Find the `iam:PassRole` statement and replace **only that statement** with:
+
+```json
+{
+  "Effect": "Allow",
+  "Action": "iam:PassRole",
+  "Resource": [
+    "arn:aws:iam::098295335350:role/reviewlens-cloud-dev-apprunner-ecr-access",
+    "arn:aws:iam::098295335350:role/reviewlens-cloud-dev-apprunner-instance"
+  ]
+}
+```
+
+Save the edited policy as its **default version**.
+
+This removes the failing service condition while retaining the important resource restriction: the deployment role can pass **only these two roles**, not arbitrary account roles. Their trust policies still determine which services may assume them.
+
+Then:
+
+1. Wait briefly for IAM propagation.
+2. Select **Re-run failed jobs** in GitHub Actions.
+
+Do **not** change the deployment role’s OIDC trust policy, the App Runner roles’ trust policies, or add `AdministratorAccess`.
+
+I inspected the live policy and failure event read-only; I haven’t modified AWS.
+
+## Prompt
+
+Failed again ...
+
+```
+Run terraform apply -auto-approve \
+
+data.aws_caller_identity.current: Reading...
+aws_cloudfront_origin_access_control.frontend: Refreshing state... [id=E3P6VQD6E0QTY]
+aws_secretsmanager_secret.openai: Refreshing state... [id=arn:aws:secretsmanager:us-east-1:098295335350:secret:reviewlens-cloud-dev/openai-api-key-l7bFzQ]
+aws_ecr_repository.api: Refreshing state... [id=reviewlens-cloud-dev-api]
+aws_iam_role.apprunner_ecr_access: Refreshing state... [id=reviewlens-cloud-dev-apprunner-ecr-access]
+aws_secretsmanager_secret.serpapi: Refreshing state... [id=arn:aws:secretsmanager:us-east-1:098295335350:secret:reviewlens-cloud-dev/serpapi-api-key-N9lYUR]
+aws_apprunner_auto_scaling_configuration_version.single_instance: Refreshing state... [id=arn:aws:apprunner:us-east-1:098295335350:autoscalingconfiguration/reviewlens-cloud-dev-single/1/4abecbf18995404d835e8b8d4eeb61fb]
+aws_iam_role.apprunner_instance: Refreshing state... [id=reviewlens-cloud-dev-apprunner-instance]
+data.aws_caller_identity.current: Read complete after 0s [id=098295335350]
+aws_s3_bucket.frontend: Refreshing state... [id=reviewlens-cloud-dev-098295335350-us-east-1]
+aws_ecr_lifecycle_policy.api: Refreshing state... [id=reviewlens-cloud-dev-api]
+aws_iam_role_policy_attachment.apprunner_ecr_access: Refreshing state... [id=reviewlens-cloud-dev-apprunner-ecr-access-20261010162202413100000003]
+aws_iam_role_policy.apprunner_secrets: Refreshing state... [id=reviewlens-cloud-dev-apprunner-instance:reviewlens-cloud-dev-read-runtime-secrets]
+aws_s3_bucket_public_access_block.frontend: Refreshing state... [id=reviewlens-cloud-dev-098295335350-us-east-1]
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+Terraform will perform the following actions:
+  # aws_apprunner_service.api[0] will be created
+  + resource "aws_apprunner_service" "api" {
+      + arn                            = (known after apply)
+      + auto_scaling_configuration_arn = "arn:aws:apprunner:us-east-1:098295335350:autoscalingconfiguration/reviewlens-cloud-dev-single/1/4abecbf18995404d835e8b8d4eeb61fb"
+      + id                             = (known after apply)
+      + service_id                     = (known after apply)
+      + service_name                   = "reviewlens-cloud-dev-api"
+      + service_url                    = (known after apply)
+      + status                         = (known after apply)
+      + tags                           = {
+          + "application" = "reviewlens"
+          + "environment" = "cloud-dev"
+          + "managed_by"  = "terraform"
+        }
+      + tags_all                       = {
+          + "application" = "reviewlens"
+          + "environment" = "cloud-dev"
+          + "managed_by"  = "terraform"
+        }
+      + health_check_configuration {
+          + healthy_threshold   = 1
+          + interval            = 10
+          + path                = "/health"
+          + protocol            = "HTTP"
+          + timeout             = 5
+          + unhealthy_threshold = 5
+        }
+      + instance_configuration {
+          + cpu               = "0.25 vCPU"
+          + instance_role_arn = "arn:aws:iam::098295335350:role/reviewlens-cloud-dev-apprunner-instance"
+          + memory            = "0.5 GB"
+        }
+      + network_configuration (known after apply)
+      + source_configuration {
+          + auto_deployments_enabled = false
+          + authentication_configuration {
+              + access_role_arn = "arn:aws:iam::098295335350:role/reviewlens-cloud-dev-apprunner-ecr-access"
+            }
+          + image_repository {
+              + image_identifier      = "098295335350.dkr.ecr.us-east-1.amazonaws.com/reviewlens-cloud-dev-api:228722f19ad391778951fd13d0d4af4d8a3a8dc0-4"
+              + image_repository_type = "ECR"
+              + image_configuration {
+                  + port                          = "8000"
+                  + runtime_environment_secrets   = {
+                      + "OPENAI_API_KEY"  = "arn:aws:secretsmanager:us-east-1:098295335350:secret:reviewlens-cloud-dev/openai-api-key-l7bFzQ"
+                      + "SERPAPI_API_KEY" = "arn:aws:secretsmanager:us-east-1:098295335350:secret:reviewlens-cloud-dev/serpapi-api-key-N9lYUR"
+                    }
+                  + runtime_environment_variables = {
+                      + "CACHE_MAX_ENTRIES"        = "50"
+                      + "CACHE_TTL_SECONDS"        = "86400"
+                      + "CORS_ORIGINS"             = null
+                      + "MAX_REVIEWS"              = "200"
+                      + "MODEL_CONTEXT_CHARS"      = "60000"
+                      + "OPENAI_MODEL"             = "gpt-4.1-mini"
+                      + "PROVIDER_TIMEOUT_SECONDS" = "20"
+                    }
+                }
+            }
+        }
+    }
+  # aws_cloudfront_distribution.frontend[0] will be created
+  + resource "aws_cloudfront_distribution" "frontend" {
+      + arn                             = (known after apply)
+      + caller_reference                = (known after apply)
+      + continuous_deployment_policy_id = (known after apply)
+      + default_root_object             = "index.html"
+      + domain_name                     = (known after apply)
+      + enabled                         = true
+      + etag                            = (known after apply)
+      + hosted_zone_id                  = (known after apply)
+      + http_version                    = "http2and3"
+      + id                              = (known after apply)
+      + in_progress_validation_batches  = (known after apply)
+      + is_ipv6_enabled                 = false
+      + last_modified_time              = (known after apply)
+      + price_class                     = "PriceClass_100"
+      + retain_on_delete                = false
+      + staging                         = false
+      + status                          = (known after apply)
+      + tags                            = {
+          + "application" = "reviewlens"
+          + "environment" = "cloud-dev"
+          + "managed_by"  = "terraform"
+        }
+      + tags_all                        = {
+          + "application" = "reviewlens"
+          + "environment" = "cloud-dev"
+          + "managed_by"  = "terraform"
+        }
+      + trusted_key_groups              = (known after apply)
+      + trusted_signers                 = (known after apply)
+      + wait_for_deployment             = true
+      + default_cache_behavior {
+          + allowed_methods        = [
+              + "GET",
+              + "HEAD",
+            ]
+          + cache_policy_id        = "658327ea-f89d-4fab-a63d-7e88639e58f6"
+          + cached_methods         = [
+              + "GET",
+              + "HEAD",
+            ]
+          + compress               = true
+          + default_ttl            = (known after apply)
+          + max_ttl                = (known after apply)
+          + min_ttl                = 0
+          + target_origin_id       = "reviewlens-frontend"
+          + trusted_key_groups     = (known after apply)
+          + trusted_signers        = (known after apply)
+          + viewer_protocol_policy = "redirect-to-https"
+          + grpc_config (known after apply)
+        }
+      + ordered_cache_behavior {
+          + allowed_methods          = [
+              + "DELETE",
+              + "GET",
+              + "HEAD",
+              + "OPTIONS",
+              + "PATCH",
+              + "POST",
+              + "PUT",
+            ]
+          + cache_policy_id          = "4135ea2d-6df8-44a3-9df9-4b5a84be39ad"
+          + cached_methods           = [
+              + "GET",
+              + "HEAD",
+            ]
+          + compress                 = true
+          + default_ttl              = (known after apply)
+          + max_ttl                  = (known after apply)
+          + min_ttl                  = 0
+          + origin_request_policy_id = "b689b0a8-53d0-40ab-baf2-68738e2966ac"
+          + path_pattern             = "api/*"
+          + target_origin_id         = "reviewlens-api"
+          + viewer_protocol_policy   = "redirect-to-https"
+          + grpc_config (known after apply)
+        }
+      + origin {
+          + connection_attempts      = 3
+          + connection_timeout       = 10
+          + domain_name              = (known after apply)
+          + origin_id                = "reviewlens-api"
+            # (2 unchanged attributes hidden)
+          + custom_origin_config {
+              + http_port                = 80
+              + https_port               = 443
+              + origin_keepalive_timeout = 5
+              + origin_protocol_policy   = "https-only"
+              + origin_read_timeout      = 30
+              + origin_ssl_protocols     = [
+                  + "TLSv1.2",
+                ]
+            }
+        }
+      + origin {
+          + connection_attempts      = 3
+          + connection_timeout       = 10
+          + domain_name              = "reviewlens-cloud-dev-098295335350-us-east-1.s3.us-east-1.amazonaws.com"
+          + origin_access_control_id = "E3P6VQD6E0QTY"
+          + origin_id                = "reviewlens-frontend"
+            # (1 unchanged attribute hidden)
+        }
+      + restrictions {
+          + geo_restriction {
+              + locations        = (known after apply)
+              + restriction_type = "none"
+            }
+        }
+      + viewer_certificate {
+          + cloudfront_default_certificate = true
+          + minimum_protocol_version       = "TLSv1.2_2021"
+        }
+    }
+  # aws_s3_bucket_policy.frontend[0] will be created
+  + resource "aws_s3_bucket_policy" "frontend" {
+      + bucket = "reviewlens-cloud-dev-098295335350-us-east-1"
+      + id     = (known after apply)
+      + policy = (known after apply)
+    }
+Plan: 3 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + backend_url                = (known after apply)
+  + cloudfront_distribution_id = (known after apply)
+  + frontend_url               = (known after apply)
+aws_apprunner_service.api[0]: Creating...
+aws_apprunner_service.api[0]: Still creating... [10s elapsed]
+aws_apprunner_service.api[0]: Still creating... [20s elapsed]
+aws_apprunner_service.api[0]: Still creating... [30s elapsed]
+aws_apprunner_service.api[0]: Still creating... [40s elapsed]
+aws_apprunner_service.api[0]: Still creating... [50s elapsed]
+aws_apprunner_service.api[0]: Still creating... [1m0s elapsed]
+aws_apprunner_service.api[0]: Still creating... [1m10s elapsed]
+aws_apprunner_service.api[0]: Still creating... [1m20s elapsed]
+aws_apprunner_service.api[0]: Still creating... [1m30s elapsed]
+aws_apprunner_service.api[0]: Still creating... [1m40s elapsed]
+aws_apprunner_service.api[0]: Still creating... [1m50s elapsed]
+aws_apprunner_service.api[0]: Still creating... [2m0s elapsed]
+aws_apprunner_service.api[0]: Still creating... [2m10s elapsed]
+aws_apprunner_service.api[0]: Creation complete after 2m15s [id=arn:aws:apprunner:us-east-1:098295335350:service/reviewlens-cloud-dev-api/bf2e87c186d74b95932f82e01bbc9b22]
+aws_cloudfront_distribution.frontend[0]: Creating...
+╷
+│ Error: creating CloudFront Distribution: operation error CloudFront: CreateDistributionWithTags, https response error StatusCode: 404, RequestID: 713099d9-7c8b-46da-a240-57df86c3b508, NoSuchCachePolicy: The specified cache policy does not exist.
+│
+│   with aws_cloudfront_distribution.frontend[0],
+│   on main.tf line 186, in resource "aws_cloudfront_distribution" "frontend":
+│  186: resource "aws_cloudfront_distribution" "frontend" {
+│
+╵
+Error: Terraform exited with code 1.
+Error: Process completed with exit code 1.
+```
+
+## Response
+
+Read , lines 180 to 235
+Completed with input: {
+"path": "/home/iambillmccann/.vscode-server/data/agentSessionData/266cadb7-99a9-42b3-b72c-a7cfa3834d27/attachments/1d7e2122-8865-4377-96a6-d890e2709c75/Pasted text #1.txt",
+"view_range": [
+180,
+235
+]
+}
+
+App Runner is now running; the failure has moved to CloudFront’s cache-policy configuration. I’ll verify the managed policy IDs against AWS and fix the invalid reference without disturbing the backend already created.
+
+Read , lines 215 to 246
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/infra/providers/aws/main.tf",
+"view_range": [
+215,
+246
+]
+}
+
+Ran terminal command: aws cloudfront list-cache-policies --profile cornerstone --type managed --query 'CachePolicyList.Items[].CachePolicy.{Name:CachePolicyConfig.Name,Id:Id}' --output json --no-cli-pager; aws cloudfront list-origin-request-policies --profile cornerstone --type managed --query 'OriginRequestPolicyList.Items[].OriginRequestPolicy.{Name:OriginRequestPolicyConfig.Name,Id:Id}' --output json --no-cli-pager; git status --short
+
+Read
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/infra/providers/aws/tests/resource_names.tftest.hcl"
+}
+
+Edit ,
+
+Ran terminal command: terraform -chdir=infra/providers/aws fmt -check -recursive && terraform -chdir=infra/providers/aws validate && terraform -chdir=infra/providers/aws test && git diff --check
+
+This was another typo in the infrastructure I supplied—not an IAM issue.
+
+The API cache policy ID contained **`9df9`**, but AWS’s `Managed-CachingDisabled` policy uses **`9df3`**:
+
+```text
+4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+```
+
+I verified all three CloudFront managed policy IDs directly against AWS and corrected `main.tf`. I also added a regression test; Terraform validation and all **four tests pass**.
+
+### Next steps
+
+1. Commit and push the corrected configuration and `test` to `main`.
+2. Let the push trigger a **new deployment run**, or manually run the workflow from the updated `main`.
+
+**Don’t rerun the old failed job:** it checks out the old commit containing the incorrect ID.
+
+App Runner was successfully created and is now incurring hosting costs. Keep it in Terraform state—there’s no need to destroy it. The next deployment should update the backend image and proceed with CloudFront creation. No IAM policy changes are needed for this error.
