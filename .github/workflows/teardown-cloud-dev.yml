@@ -3,9 +3,17 @@ name: Tear down cloud development
 on:
   workflow_dispatch:
     inputs:
-      confirm:
-        description: Type destroy to remove the cloud development environment and its data.
+      mode:
+        description: "pause stops App Runner compute but keeps secrets, images, and the public URL; destroy removes every app resource, including secret values."
         required: true
+        type: choice
+        default: pause
+        options:
+          - pause
+          - destroy
+      confirm:
+        description: Required for destroy mode only. Type destroy to remove the environment and its data.
+        required: false
         type: string
 
 permissions:
@@ -18,7 +26,7 @@ concurrency:
 
 jobs:
   teardown:
-    if: github.ref == 'refs/heads/main' && inputs.confirm == 'destroy'
+    if: github.ref == 'refs/heads/main' && (inputs.mode == 'pause' || inputs.confirm == 'destroy')
     runs-on: ubuntu-latest
     env:
       AWS_REGION: ${{ vars.AWS_REGION }}
@@ -44,6 +52,16 @@ jobs:
             -backend-config="bucket=reviewlens-tfstate-${account_id}-${AWS_REGION}" \
             -backend-config="region=$AWS_REGION"
 
+      - name: Pause cloud development compute
+        if: inputs.mode == 'pause'
+        working-directory: infra/providers/aws
+        run: |
+          terraform apply -auto-approve \
+            -var="aws_region=$AWS_REGION" \
+            -var="enable_backend=false"
+          echo "Paused. Rerun 'Deploy cloud development' to resume at $(terraform output -raw frontend_url)" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Destroy cloud development resources
+        if: inputs.mode == 'destroy'
         working-directory: infra/providers/aws
         run: terraform destroy -auto-approve -var="aws_region=$AWS_REGION"

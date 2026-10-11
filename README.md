@@ -210,11 +210,24 @@ bundle contains neither provider key.
 
 ### Teardown, cost, and limitations
 
-Run **Tear down cloud development** from `main` and type `destroy` to confirm.
-Terraform destroys the App Runner service, CloudFront distribution, frontend
-bucket contents, ECR images/repository, and runtime secret containers/values.
-The encrypted and versioned Terraform state bucket is retained. Store provider
-keys safely elsewhere before teardown if you will redeploy. Review the Terraform
+Run **Tear down cloud development** from `main` and choose a mode:
+
+- **`pause`** (default, no confirmation): removes the App Runner service, which
+  is the only meaningful idle cost. It keeps the CloudFront distribution and its
+  public URL, the frontend bucket, ECR images, IAM roles, and the runtime secret
+  values. While paused, the frontend still loads but `/api/*` requests fail.
+  Rerun **Deploy cloud development** to resume at the same URL; no secrets need
+  re-entering.
+- **`destroy`** (type `destroy` to confirm): Terraform destroys every app
+  resource, including the CloudFront distribution, frontend bucket contents,
+  ECR images/repository, and the runtime secret containers **and values**
+  (deleted immediately, with no recovery window). A later deploy creates a new
+  public URL and refuses to continue until both secret values are re-entered
+  (step 5 above). Store provider keys safely elsewhere first.
+
+Neither mode removes the bootstrap resources Terraform does not manage: the
+encrypted, versioned Terraform state bucket and the GitHub OIDC deployment
+role/policy. Delete those manually for a complete cleanup. Review the Terraform
 plan/state before destroying resources manually.
 
 The single App Runner instance is always provisioned (it does not scale to
@@ -223,8 +236,9 @@ smallest configured size, budget roughly **$3–$10/month for idle backend
 compute** in a typical US region. A light active scenario (about 10 CPU-active
 hours/month) is roughly **$3–$11/month for AWS hosting**, before variable
 CloudFront/S3 requests and egress. These are estimates, not quotes; check the
-AWS Pricing Calculator for the selected region, set a billing alert, and tear
-down promptly when the demo is not needed. SerpApi and OpenAI quotas and
+AWS Pricing Calculator for the selected region, set a billing alert, and pause
+promptly when the demo is not needed. A paused environment costs roughly
+$1/month (mainly the two secrets at about $0.40 each, plus small S3/ECR storage). SerpApi and OpenAI quotas and
 charges remain governed by those providers.
 
 The public anonymous endpoint has no per-visitor identity or rate limiter.

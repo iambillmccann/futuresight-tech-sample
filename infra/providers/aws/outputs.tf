@@ -9,13 +9,13 @@ output "frontend_bucket" {
 }
 
 output "frontend_url" {
-  description = "Public CloudFront URL; null until the backend is enabled."
-  value       = try("https://${aws_cloudfront_distribution.frontend[0].domain_name}", null)
+  description = "Public CloudFront URL; stable across pause and resume."
+  value       = "https://${aws_cloudfront_distribution.frontend.domain_name}"
 }
 
 output "cloudfront_distribution_id" {
-  description = "CloudFront distribution ID; null until the backend is enabled."
-  value       = try(aws_cloudfront_distribution.frontend[0].id, null)
+  description = "CloudFront distribution ID."
+  value       = aws_cloudfront_distribution.frontend.id
 }
 
 output "backend_url" {

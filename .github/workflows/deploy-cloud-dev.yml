@@ -88,9 +88,14 @@ jobs:
       - name: Confirm provider secrets are populated
         working-directory: infra/providers/aws
         run: |
+          missing=0
           for secret_name in "$(terraform output -raw serpapi_secret_name)" "$(terraform output -raw openai_secret_name)"; do
-            aws secretsmanager get-secret-value --secret-id "$secret_name" --query ARN --output text >/dev/null
+            if ! aws secretsmanager get-secret-value --secret-id "$secret_name" --query ARN --output text >/dev/null; then
+              echo "::error::Secret '$secret_name' has no value. Set it in the Secrets Manager console (Plaintext, raw API key only), then rerun this workflow."
+              missing=1
+            fi
           done
+          exit "$missing"
 
       - name: Log in to Amazon ECR
         id: ecr
