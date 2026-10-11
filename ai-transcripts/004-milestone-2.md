@@ -2736,3 +2736,109 @@ bash ./smoke-test.sh "$frontend_url" "$backend_url"
 3. Open the frontend and verify real ingestion, cache reuse, grounded Q&A, and scope refusal.
 
 No AWS or IAM changes are needed. The deployment is reachable; this failure was only the script invocation.
+
+## Prompt
+
+The deployment was successful, but the app is not ingesting reviews. See the attached image.
+
+## Response
+
+The screenshot shows the request reached the backend, but the review provider rejected the source. I’ll trace how that Google Maps URL is converted into a SerpApi identifier and check the provider’s response handling.
+
+Read , lines 1 to 320
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/backend/ingestion.py",
+"view_range": [
+1,
+320
+]
+}
+
+Read , lines 290 to 490
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/backend/test_app.py",
+"view_range": [
+290,
+490
+]
+}
+
+Ran terminal command: git status --short
+
+Fetched [https://serpapi.com/google-maps-reviews-api](https://serpapi.com/google-maps-reviews-api)
+Completed with input: {"url":"https://serpapi.com/google-maps-reviews-api"}
+
+Ask User
+Completed with input: {
+"question": "Please paste the exact Google Maps URL you entered so I can reproduce the provider rejection and verify the identifier extraction."
+}
+
+Read , lines 230 to 306
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/backend/ingestion.py",
+"view_range": [
+230,
+306
+]
+}
+
+Ran terminal command: node <<'JS'
+const {execFileSync}=require('child_process');
+const secret=JSON.parse(execFileSync('aws',['secretsmanager','get-secret-value','--profile','cornerstone','--region','us-east-1','--secret-id','reviewlens-cloud-dev/serpapi-api-key','--output','json','--no-cli-pager'],{encoding:'utf8'})).SecretString;
+console.log('Secret format:',{isJson:secret.trim().startsWith('{'),hasOuterWhitespace:secret!==secret.trim()});
+const url=new URL('https://serpapi.com/search.json');url.search=new URLSearchParams({engine:'google_maps_reviews',data_id:'0x89c3cd299d079ee9:0xdd835bfe1172e11b',hl:'en',api_key:secret});
+fetch(url).then(async r=>{const p=await r.json(); console.log(JSON.stringify({status:r.status,error:typeof p.error==='string'?p.error.split(secret).join('[REDACTED]'):undefined,searchStatus:p.search_metadata?.status,reviewCount:p.reviews?.length,placeTitle:p.place_info?.title},null,2))}).catch(()=>{console.error('Provider diagnostic request failed');process.exitCode=1});
+JS
+
+I reproduced the failure: the Maps identifier is valid, but SerpApi returns **401 “Invalid API key.”** The secret currently contains JSON rather than a raw key, so the backend sends the JSON string as the credential. I’ll also correct the backend’s error mapping so invalid credentials aren’t reported as a rejected Maps source.
+
+Edit , ,
+
+Ran terminal command: node <<'JS'
+const {execFileSync}=require('child_process'); const s=JSON.parse(execFileSync('aws',['secretsmanager','get-secret-value','--profile','cornerstone','--region','us-east-1','--secret-id','reviewlens-cloud-dev/openai-api-key','--output','json','--no-cli-pager'],{encoding:'utf8'})).SecretString; console.log('OpenAI secret format:',{isJson:s.trim().startsWith('{'),hasOuterWhitespace:s!==s.trim()});
+JS
+git diff --check
+
+Discovering tests...
+Tool execution failed: No tests found in the files
+
+Checked , , no problems found
+
+Ran terminal command: /home/iambillmccann/repositories/futuresight-tech-sample/.venv/bin/pytest /home/iambillmccann/repositories/futuresight-tech-sample/backend/test_app.py -q
+
+I found the cause: **both provider secrets contain JSON, not raw API keys.**
+
+The Google Maps URL’s identifier is valid. A direct diagnostic request to SerpApi returned **401 “Invalid API key”** because App Runner injects the entire JSON secret into `SERPAPI_API_KEY`.
+
+### Correct both secrets
+
+In AWS **Secrets Manager**, region **`us-east-1`**, edit:
+
+- `reviewlens-cloud-dev/serpapi-api-key`
+- `reviewlens-cloud-dev/openai-api-key`
+
+Select the **Plaintext** editor and replace the JSON with **only the existing API key value**.
+
+For example, change:
+
+```json
+{ "SERPAPI_API_KEY": "your-key" }
+```
+
+to just:
+
+```text
+your-key
+```
+
+Do the same for OpenAI. No JSON, quotation marks, variable names, or surrounding whitespace. Keep the keys private.
+
+### Redeploy after saving
+
+App Runner reads injected secrets during deployment; changing Secrets Manager alone does not update the running container.
+
+I also fixed `ingestion.py` so a provider authentication failure produces a clear credentials error rather than “could not process that source.” **All 30 backend tests pass.**
+
+Commit and push the code changes to `main` **after correcting both secrets**. The new deployment will pick up the corrected values. Then retry the same Google Maps URL.
+
+I haven’t modified your secret values, and live ingestion remains unverified until they are corrected and the backend is redeployed.

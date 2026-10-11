@@ -237,6 +237,12 @@ class SerpApiIngestionProvider:
                 502,
             ) from exc
 
+        if response.status_code == 401:
+            raise ProviderError(
+                "PROVIDER_AUTHENTICATION_FAILED",
+                "The review provider credentials are invalid. Please contact the app administrator.",
+                503,
+            )
         if response.status_code == 429:
             raise ProviderError(
                 "PROVIDER_QUOTA_EXCEEDED",

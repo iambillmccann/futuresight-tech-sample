@@ -134,7 +134,11 @@ smoke testing.
 
 5. In AWS Secrets Manager, set the `SecretString` values for the two names
    printed by `terraform output -raw serpapi_secret_name` and
-   `terraform output -raw openai_secret_name`. Keep the values out of Terraform,
+   `terraform output -raw openai_secret_name`. Use the Plaintext editor and
+   store only the raw API key, not JSON or a key/value pair. App Runner injects
+   the entire secret string as the credential. After changing a secret value,
+   redeploy App Runner so it receives the updated credential.
+   Keep the values out of Terraform,
    shell history, GitHub, and the repository.
 6. Push or merge to `main` (or run **Deploy cloud development** manually from
    `main`). The workflow verifies tests, publishes a SHA-tagged image, deploys

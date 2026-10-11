@@ -397,7 +397,11 @@ def test_serpapi_resolves_source_normalizes_records_and_reports_partial() -> Non
 
 @pytest.mark.parametrize(
     ("status_code", "expected_code"),
-    [(429, "PROVIDER_QUOTA_EXCEEDED"), (503, "PROVIDER_UNAVAILABLE")],
+    [
+        (401, "PROVIDER_AUTHENTICATION_FAILED"),
+        (429, "PROVIDER_QUOTA_EXCEEDED"),
+        (503, "PROVIDER_UNAVAILABLE"),
+    ],
 )
 def test_serpapi_sanitizes_provider_failures(
     status_code: int, expected_code: str
