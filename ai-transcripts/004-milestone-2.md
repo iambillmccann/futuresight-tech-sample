@@ -2842,3 +2842,192 @@ I also fixed `ingestion.py` so a provider authentication failure produces a clea
 Commit and push the code changes to `main` **after correcting both secrets**. The new deployment will pick up the corrected values. Then retry the same Google Maps URL.
 
 I haven’t modified your secret values, and live ingestion remains unverified until they are corrected and the backend is redeployed.
+
+## Prompt
+
+Ingestion and Q&A is working. But the teardown failed ...
+
+```
+Changes to Outputs:
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:633)  - ecr_repository_url  = "098295335350.dkr.ecr.us-east-1.amazonaws.com/reviewlens-cloud-dev-api" -> null
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:634)  - frontend_bucket     = "reviewlens-cloud-dev-098295335350-us-east-1" -> null
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:635)  - openai_secret_name  = "reviewlens-cloud-dev/openai-api-key" -> null
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:636)  - serpapi_secret_name = "reviewlens-cloud-dev/serpapi-api-key" -> null
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:637)aws_ecr_lifecycle_policy.api: Destroying... [id=reviewlens-cloud-dev-api]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:638)aws_s3_bucket_policy.frontend[0]: Destroying... [id=reviewlens-cloud-dev-098295335350-us-east-1]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:639)aws_ecr_lifecycle_policy.api: Destruction complete after 0s
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:644)aws_s3_bucket_policy.frontend[0]: Destruction complete after 0s
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:645)aws_s3_bucket_public_access_block.frontend: Destroying... [id=reviewlens-cloud-dev-098295335350-us-east-1]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:646)aws_cloudfront_distribution.frontend[0]: Destroying... [id=E22L3Q3SGMK328]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:647)aws_s3_bucket_public_access_block.frontend: Destruction complete after 0s
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:648)aws_cloudfront_distribution.frontend[0]: Still destroying... [id=E22L3Q3SGMK328, 10s elapsed]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:649)aws_cloudfront_distribution.frontend[0]: Still destroying... [id=E22L3Q3SGMK328, 20s elapsed]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:650)aws_cloudfront_distribution.frontend[0]: Still destroying... [id=E22L3Q3SGMK328, 30s elapsed]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:651)aws_cloudfront_distribution.frontend[0]: Still destroying... [id=E22L3Q3SGMK328, 40s elapsed]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:652)aws_cloudfront_distribution.frontend[0]: Still destroying... [id=E22L3Q3SGMK328, 50s elapsed]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:653)aws_cloudfront_distribution.frontend[0]: Still destroying... [id=E22L3Q3SGMK328, 1m0s elapsed]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:654)aws_cloudfront_distribution.frontend[0]: Still destroying... [id=E22L3Q3SGMK328, 1m10s elapsed]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:655)aws_cloudfront_distribution.frontend[0]: Still destroying... [id=E22L3Q3SGMK328, 1m20s elapsed]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:656)aws_cloudfront_distribution.frontend[0]: Still destroying... [id=E22L3Q3SGMK328, 1m30s elapsed]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:657)aws_cloudfront_distribution.frontend[0]: Still destroying... [id=E22L3Q3SGMK328, 1m40s elapsed]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:658)aws_cloudfront_distribution.frontend[0]: Still destroying... [id=E22L3Q3SGMK328, 1m50s elapsed]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:659)aws_cloudfront_distribution.frontend[0]: Still destroying... [id=E22L3Q3SGMK328, 2m0s elapsed]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:660)aws_cloudfront_distribution.frontend[0]: Still destroying... [id=E22L3Q3SGMK328, 2m10s elapsed]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:661)aws_cloudfront_distribution.frontend[0]: Still destroying... [id=E22L3Q3SGMK328, 2m20s elapsed]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:662)aws_cloudfront_distribution.frontend[0]: Still destroying... [id=E22L3Q3SGMK328, 2m30s elapsed]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:663)aws_cloudfront_distribution.frontend[0]: Still destroying... [id=E22L3Q3SGMK328, 2m40s elapsed]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:664)aws_cloudfront_distribution.frontend[0]: Still destroying... [id=E22L3Q3SGMK328, 2m50s elapsed]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:665)aws_cloudfront_distribution.frontend[0]: Still destroying... [id=E22L3Q3SGMK328, 3m0s elapsed]
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:666)╷
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:667)│ Error: waiting for CloudFront Distribution (E22L3Q3SGMK328) delete: operation error CloudFront: GetDistribution, https response error StatusCode: 403, RequestID: 29c2e02b-3475-414f-9380-794e2ec4a936, AccessDenied: User: arn:aws:sts::098295335350:assumed-role/reviewlens-github-deploy/GitHubActions is not authorized to perform: cloudfront:GetDistribution on resource: arn:aws:cloudfront::098295335350:distribution/E22L3Q3SGMK328 because no identity-based policy allows the cloudfront:GetDistribution action
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:668)│
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:669)│
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:670)╵
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:671)Error: Terraform exited with code 1.
+
+[](https://github.com/iambillmccann/futuresight-tech-sample/actions/runs/38100741238/job/114355980381#step:6:672)Error: Process completed with exit code 1.
+```
+
+## Response
+
+The error points to the deploy role’s CloudFront permissions, so I’m checking the live policy statements.
+
+Ran terminal command: cd /tmp; arn=$(aws iam list-policies --scope Local --profile cornerstone --query "Policies[?PolicyName=='reviewlens-github-deployment-policy'].[Arn,DefaultVersionId]" --output text --no-cli-pager); set -- $arn; aws iam get-policy-version --policy-arn "$1" --version-id "$2" --profile cornerstone --output json --no-cli-pager | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const p=JSON.parse(d).PolicyVersion.Document;for(const s of p.Statement){if(JSON.stringify(s).includes("cloudfront"))console.log(JSON.stringify(s,null,1))}})'; aws cloudfront get-distribution --id E22L3Q3SGMK328 --profile cornerstone --query 'Distribution.{Status:Status,Enabled:DistributionConfig.Enabled,Tags:ARN}' --output json --no-cli-pager 2>&1; aws cloudfront list-tags-for-resource --resource arn:aws:cloudfront::098295335350:distribution/E22L3Q3SGMK328 --profile cornerstone --output json --no-cli-pager 2>&1
+Tool execution failed with exit code 254
+
+Ran terminal command: cd /home/iambillmccann/.copilot/session-state/0246d3f8-23db-450e-8647-b4a768ab1187/files && node -e '
+const fs=require("fs");const f="reviewlens-github-deploy-policy.json";const p=JSON.parse(fs.readFileSync(f));
+for(const s of p.Statement){const a=[].concat(s.Action);
+if(a.includes("cloudfront:GetDistribution")&&s.Condition){s.Action=a.filter(x=>x!=="cloudfront:GetDistribution")}
+if(a.includes("iam:PassRole")&&s.Condition){delete s.Condition}}
+p.Statement.push({Sid:"ReadDistributionsDuringDeleteWait",Effect:"Allow",Action:"cloudfront:GetDistribution",Resource:"arn:aws:cloudfront::098295335350:distribution/_"});
+fs.writeFileSync(f,JSON.stringify(p));console.log(JSON.stringify(p).length)'; grep -rn "GetDistribution\|PassedToService" /home/iambillmccann/repositories/futuresight-tech-sample --include=_.md --include=\*.json --exclude-dir=node_modules --exclude-dir=ai-transcripts | head
+
+The distribution was actually deleted. Teardown failed afterward, while Terraform was confirming the deletion.
+
+**Cause:** the deploy role allows `cloudfront:GetDistribution` only when the distribution has the ReviewLens tags. Once CloudFront deleted the distribution, those tags no longer existed. AWS checked authorization before it could return “distribution not found,” so the request was denied.
+
+I confirmed in AWS that distribution `E22L3Q3SGMK328` no longer exists.
+
+### Update `reviewlens-github-deployment-policy`
+
+1. In the CloudFront statement with the `aws:ResourceTag/...` condition, **remove only**:
+
+   ```json
+   "cloudfront:GetDistribution",
+   ```
+
+   Keep the other actions and the tag condition.
+
+2. Add this statement to the `Statement` array:
+
+   ```json
+   {
+     "Sid": "ReadDistributionsDuringDeleteWait",
+     "Effect": "Allow",
+     "Action": "cloudfront:GetDistribution",
+     "Resource": "arn:aws:cloudfront::098295335350:distribution/*"
+   }
+   ```
+
+This only adds read access to distribution configurations in this account. Update, delete, and invalidation actions still require the ReviewLens tags.
+
+3. Save the policy, then **rerun the teardown workflow**. Terraform should see the distribution is gone, remove it from state, and continue destroying the remaining resources. Don’t remove anything from Terraform state manually.
+
+I also updated the saved `policy JSON` with this fix. It now includes the earlier `PassRole` correction too, and is 5,734 characters, under the 6,144-character IAM limit. No repository changes were needed for this issue.
+
+## Prompt
+
+Where do I find the CloudFront statement to remove?
+
+## Response
+
+It’s in the IAM policy attached to the GitHub deployment role, not in the repository.
+
+1. In the AWS Console, go to **IAM → Policies**.
+2. Search for **`reviewlens-github-deployment-policy`** and open it.
+3. On the **Permissions** tab, click **Edit**, then select the **JSON** editor.
+4. Search the JSON (Ctrl+F) for **`cloudfront:GetDistribution`**. It is in this statement:
+
+```json
+{
+  "Effect": "Allow",
+  "Action": [
+    "cloudfront:GetDistribution",
+    "cloudfront:UpdateDistribution",
+    "cloudfront:DeleteDistribution",
+    "cloudfront:ListTagsForResource",
+    "cloudfront:TagResource",
+    "cloudfront:UntagResource",
+    "cloudfront:CreateInvalidation",
+    "cloudfront:GetInvalidation"
+  ],
+  "Resource": "arn:aws:cloudfront::098295335350:distribution/*",
+  "Condition": {
+    "StringEquals": {
+      "aws:ResourceTag/application": "reviewlens",
+      "aws:ResourceTag/environment": "cloud-dev"
+    }
+  }
+}
+```
+
+It may have a `"Sid"` line, and it may appear as one compact line if you pasted the minified policy.
+
+Delete only the `"cloudfront:GetDistribution",` line, so that statement starts like this:
+
+```json
+"Action": [
+  "cloudfront:UpdateDistribution",
+  "cloudfront:DeleteDistribution",
+```
+
+Then add a comma after the last statement in the `Statement` array and paste the new statement:
+
+```json
+{
+  "Sid": "ReadDistributionsDuringDeleteWait",
+  "Effect": "Allow",
+  "Action": "cloudfront:GetDistribution",
+  "Resource": "arn:aws:cloudfront::098295335350:distribution/*"
+}
+```
+
+Click **Next**, then **Save changes**. Saving makes this the default policy version. After that, rerun the teardown workflow.
+
+If editing is awkward, you can also replace the whole JSON with the saved `policy JSON`. It already includes this fix and the earlier `PassRole` fix.
