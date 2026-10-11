@@ -183,9 +183,10 @@ resource "aws_cloudfront_origin_access_control" "frontend" {
   signing_protocol                  = "sigv4"
 }
 
+# The distribution survives a paused environment so the public URL stays stable;
+# only its API origin and /api/* behavior follow enable_backend.
 resource "aws_cloudfront_distribution" "frontend" {
-  count = var.enable_backend ? 1 : 0
-  tags  = local.common_tags
+  tags = local.common_tags
 
   enabled             = true
   default_root_object = "index.html"
@@ -198,15 +199,19 @@ resource "aws_cloudfront_distribution" "frontend" {
     origin_access_control_id = aws_cloudfront_origin_access_control.frontend.id
   }
 
-  origin {
-    domain_name = local.api_domain
-    origin_id   = "reviewlens-api"
+  dynamic "origin" {
+    for_each = var.enable_backend ? [local.api_domain] : []
 
-    custom_origin_config {
-      http_port              = 80
-      https_port             = 443
-      origin_protocol_policy = "https-only"
-      origin_ssl_protocols   = ["TLSv1.2"]
+    content {
+      domain_name = origin.value
+      origin_id   = "reviewlens-api"
+
+      custom_origin_config {
+        http_port              = 80
+        https_port             = 443
+        origin_protocol_policy = "https-only"
+        origin_ssl_protocols   = ["TLSv1.2"]
+      }
     }
   }
 
@@ -219,15 +224,19 @@ resource "aws_cloudfront_distribution" "frontend" {
     cache_policy_id        = "658327ea-f89d-4fab-a63d-7e88639e58f6"
   }
 
-  ordered_cache_behavior {
-    path_pattern             = "api/*"
-    target_origin_id         = "reviewlens-api"
-    viewer_protocol_policy   = "redirect-to-https"
-    allowed_methods          = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
-    cached_methods           = ["GET", "HEAD"]
-    compress                 = true
-    cache_policy_id          = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
-    origin_request_policy_id = "b689b0a8-53d0-40ab-baf2-68738e2966ac"
+  dynamic "ordered_cache_behavior" {
+    for_each = var.enable_backend ? ["api/*"] : []
+
+    content {
+      path_pattern             = ordered_cache_behavior.value
+      target_origin_id         = "reviewlens-api"
+      viewer_protocol_policy   = "redirect-to-https"
+      allowed_methods          = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+      cached_methods           = ["GET", "HEAD"]
+      compress                 = true
+      cache_policy_id          = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
+      origin_request_policy_id = "b689b0a8-53d0-40ab-baf2-68738e2966ac"
+    }
   }
 
   restrictions {
@@ -242,8 +251,17 @@ resource "aws_cloudfront_distribution" "frontend" {
   }
 }
 
+moved {
+  from = aws_cloudfront_distribution.frontend[0]
+  to   = aws_cloudfront_distribution.frontend
+}
+
+moved {
+  from = aws_s3_bucket_policy.frontend[0]
+  to   = aws_s3_bucket_policy.frontend
+}
+
 resource "aws_s3_bucket_policy" "frontend" {
-  count  = var.enable_backend ? 1 : 0
   bucket = aws_s3_bucket.frontend.id
   policy = jsonencode({
     Version = "2012-10-17"
@@ -255,7 +273,7 @@ resource "aws_s3_bucket_policy" "frontend" {
       Resource  = "${aws_s3_bucket.frontend.arn}/*"
       Condition = {
         StringEquals = {
-          "AWS:SourceArn" = aws_cloudfront_distribution.frontend[0].arn
+          "AWS:SourceArn" = aws_cloudfront_distribution.frontend.arn
         }
       }
     }]

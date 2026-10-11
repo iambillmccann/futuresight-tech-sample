@@ -16,7 +16,7 @@ variable "name_prefix" {
 }
 
 variable "enable_backend" {
-  description = "Create the App Runner service and CloudFront distribution after the image is pushed."
+  description = "Run the App Runner service and route CloudFront /api/* to it. Set false to pause compute while keeping secrets, images, and the public URL."
   type        = bool
   default     = false
 }

@@ -47,17 +47,40 @@ run "cloudfront_uses_verified_managed_policies" {
   }
 
   assert {
-    condition     = aws_cloudfront_distribution.frontend[0].default_cache_behavior[0].cache_policy_id == "658327ea-f89d-4fab-a63d-7e88639e58f6"
+    condition     = aws_cloudfront_distribution.frontend.default_cache_behavior[0].cache_policy_id == "658327ea-f89d-4fab-a63d-7e88639e58f6"
     error_message = "Static assets must use AWS Managed-CachingOptimized."
   }
 
   assert {
-    condition     = aws_cloudfront_distribution.frontend[0].ordered_cache_behavior[0].cache_policy_id == "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
+    condition     = aws_cloudfront_distribution.frontend.ordered_cache_behavior[0].cache_policy_id == "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
     error_message = "API requests must use AWS Managed-CachingDisabled."
   }
 
   assert {
-    condition     = aws_cloudfront_distribution.frontend[0].ordered_cache_behavior[0].origin_request_policy_id == "b689b0a8-53d0-40ab-baf2-68738e2966ac"
+    condition     = aws_cloudfront_distribution.frontend.ordered_cache_behavior[0].origin_request_policy_id == "b689b0a8-53d0-40ab-baf2-68738e2966ac"
     error_message = "API requests must use AWS Managed-AllViewerExceptHostHeader."
+  }
+}
+
+run "paused_environment_keeps_public_url" {
+  command = plan
+
+  variables {
+    enable_backend = false
+  }
+
+  assert {
+    condition     = length(aws_apprunner_service.api) == 0
+    error_message = "Pausing must remove the App Runner service."
+  }
+
+  assert {
+    condition     = length(aws_cloudfront_distribution.frontend.origin) == 1 && length(aws_cloudfront_distribution.frontend.ordered_cache_behavior) == 0
+    error_message = "A paused distribution must serve only the frontend origin."
+  }
+
+  assert {
+    condition     = aws_secretsmanager_secret.serpapi.name == "reviewlens-cloud-dev/serpapi-api-key" && aws_secretsmanager_secret.openai.name == "reviewlens-cloud-dev/openai-api-key"
+    error_message = "Pausing must retain the runtime secrets."
   }
 }

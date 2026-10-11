@@ -33,16 +33,16 @@ function WeeklyChart({ weeks, rating }: { weeks: WeeklyReviews[]; rating: boolea
   }).join(' ')
 
   return (
-    <section className="min-w-0 rounded-xl border border-slate-200 bg-white p-3">
+    <section className="min-w-0 rounded-xl border border-slate-200 bg-surface p-3">
       <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
       <p className="mt-1 text-xs text-slate-500">Weeks beginning Monday</p>
       {weeks.length ? (
         <>
-          <svg viewBox="0 0 320 166" className="mt-2 w-full text-brand" role="img" aria-label={`${title}, ${weeks.length} weeks with reviews`}>
+          <svg viewBox="0 0 320 166" className="mt-2 w-full text-brand-ink" role="img" aria-label={`${title}, ${weeks.length} weeks with reviews`}>
             {[minimum, (minimum + maximum) / 2, maximum].map((tick) => (
               <g key={tick}>
-                <line x1="36" x2="292" y1={y(tick)} y2={y(tick)} stroke="#e2e8f0" />
-                <text x="30" y={y(tick) + 4} textAnchor="end" fontSize="10" fill="#64748b">
+                <line x1="36" x2="292" y1={y(tick)} y2={y(tick)} className="stroke-slate-200" />
+                <text x="30" y={y(tick) + 4} textAnchor="end" fontSize="10" className="fill-slate-500">
                   {rating ? tick.toFixed(1) : Number(tick.toFixed(1))}
                 </text>
               </g>
@@ -53,8 +53,8 @@ function WeeklyChart({ weeks, rating }: { weeks: WeeklyReviews[]; rating: boolea
                 <title>{`${week.week_start}: ${rating ? week.average_rating.toFixed(2) + ' stars' : week.review_count + ' reviews'}`}</title>
               </circle>
             ))}
-            <text x="36" y="152" fontSize="10" fill="#64748b">{weeks[0].week_start}</text>
-            {weeks.length > 1 ? <text x="292" y="152" textAnchor="end" fontSize="10" fill="#64748b">{weeks[weeks.length - 1].week_start}</text> : null}
+            <text x="36" y="152" fontSize="10" className="fill-slate-500">{weeks[0].week_start}</text>
+            {weeks.length > 1 ? <text x="292" y="152" textAnchor="end" fontSize="10" className="fill-slate-500">{weeks[weeks.length - 1].week_start}</text> : null}
           </svg>
           <details className="text-xs text-slate-500">
             <summary className="cursor-pointer rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand">View weekly values</summary>
@@ -77,7 +77,7 @@ export function ReviewCharts({ distribution, weeks, undatedCount }: Props) {
   return (
     <div className="mt-3">
       <div className="grid gap-3 md:grid-cols-3">
-        <section className="min-w-0 rounded-xl border border-slate-200 bg-white p-3">
+        <section className="min-w-0 rounded-xl border border-slate-200 bg-surface p-3">
           <h3 className="text-sm font-semibold text-slate-800">Rating distribution</h3>
           <p className="mt-1 text-xs text-slate-500">Reviews by star rating</p>
           <ul className="mt-4 space-y-3" aria-label="Rating distribution">
