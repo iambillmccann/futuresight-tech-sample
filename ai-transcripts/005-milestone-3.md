@@ -985,3 +985,514 @@ Updated the backend message to:
 Verified your exact URL now returns this message. HTTP **422** and the stable `NO_USABLE_REVIEWS` error code are preserved, and the frontend already displays the backend message.
 
 All **39 Amazon regression tests passed**, including new tests for unavailable reviews.
+
+## Prompt
+
+Our analysis guardrails display the message:
+
+`The review dataset does not contain any information about ...`
+
+... but "review dataset" is technical jargon. Let's soften the message to:
+
+`The reviews do not contain information about ...`
+
+## Response
+
+Read skill `python-fact-grounded-coding`
+
+Read , lines 1 to 100
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/backend/qa.py",
+"view_range": [
+1,
+100
+]
+}
+
+Search for `dataset lacks|does not contain|scope_prompt|insufficient`
+
+Search for `does not contain|review dataset`
+
+That wording comes from the AI response rather than a fixed UI message. I’ll update the system prompt to use “The reviews do not contain information about …” for missing-information answers and avoid “review dataset” in user-facing replies.
+
+Edit , ,
+
+Configuring a Python Environment
+Completed with input: {
+"resourcePath": "/home/iambillmccann/repositories/futuresight-tech-sample",
+"pythonPath": "/home/iambillmccann/repositories/futuresight-tech-sample/.venv/bin/python"
+}
+
+Ran terminal command: .venv/bin/pytest backend/test_app.py -q -k 'scope_prompt or model_refusal or chat_behaviors' && git diff --check
+
+Ran terminal command: curl --silent --show-error --max-time 40 -H 'Content-Type: application/json' --data '{"source_key":"amazon:amazon.com:asin:B072MQ5BRX","question":"Do these reviews mention whether the packaging is compostable?"}' http://localhost:8000/api/chat
+
+Checked , , no problems found
+
+Ran terminal command: curl --silent --show-error --max-time 40 -H 'Content-Type: application/json' --data '{"source_url":"https://www.amazon.com/dp/B072MQ5BRX"}' http://localhost:8000/api/ingest --output /dev/null --write-out 'Ingestion HTTP %{http_code}\n'
+
+Ran terminal command: curl --silent --show-error --max-time 40 -H 'Content-Type: application/json' --data '{"source_key":"amazon:amazon.com:asin:B072MQ5BRX","question":"Do these reviews mention whether the packaging is compostable?"}' http://localhost:8000/api/chat
+
+Updated the AI prompt to use your preferred wording and avoid “review dataset” in user-facing answers.
+
+Verified live:
+
+> The reviews do not contain information about whether the packaging is compostable.
+
+All 8 targeted guardrail tests passed.
+
+## Prompt
+
+I would like to submit the question in Q&A by pressing `return` in addtion to clicking the arrow icon button.
+
+## Response
+
+Read , lines 720 to 762
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/frontend/src/App.tsx",
+"view_range": [
+720,
+762
+]
+}
+
+I’ll make Return submit the question, while keeping Shift+Return for a new line and preserving the existing arrow-button behavior.
+
+Edit ,
+
+Ran terminal command: cd /home/iambillmccann/repositories/futuresight-tech-sample/frontend && npm run lint && npm run build
+
+Checked , no problems found
+
+Ran Playwright code
+Completed with input: await page.reload(); return {sourceFields:await page.getByRole('textbox',{name:'Google Maps place or Amazon product source URL'}).count(),questionFields:await page.getByRole('textbox',{name:'Ask another question about these reviews...'}).count()};
+
+Ran Playwright code
+Completed with input: await page.getByRole('textbox',{name:'Google Maps place or Amazon product source URL'}).fill('https://www.amazon.com/dp/B072MQ5BRX'); await page.getByRole('button',{name:'Analyze Reviews',exact:true}).evaluate(el=>el.click()); await page.getByText('Partial dataset',{exact:true}).waitFor({timeout:30000});
+
+Browser action failed
+Completed with input: const sent=[]; const handler=async route=>{sent.push(route.request().postDataJSON().question); await route.fulfill({json:{data:{status:'ok',answer:'Keyboard submission verified.',matching_reviews:[]},meta:{}}});}; await page.route('**/api/chat',handler); try {const input=page.getByRole('textbox',{name:'Ask another question about these reviews...'}); await input.fill('Return submission'); await input.press('Enter'); await page.getByText('Keyboard submission verified.',{exact:true}).waitFor(); await input.fill('Multiline'); await input.press('Shift+Enter'); if(await input.inputValue()!=='Multiline\n'||sent.length!==1) throw new Error('Shift+Return did not preserve newline-only behavior'); await input.fill('Arrow submission'); await page.getByRole('button',{name:'Submit question'}).evaluate(el=>el.click()); await page.getByText('Keyboard submission verified.',{exact:true}).nth(1).waitFor(); await input.fill(' '); await input.press('Enter'); if(sent.length!==2) throw new Error('Blank question submitted'); return {submitted:sent,shiftReturn:'newline only',blankReturn:'no request'};} finally {await page.unroute('**/api/chat',handler); await page.reload();}
+Tool execution failed: locator.waitFor: Timeout 10000ms exceeded.
+Call log:
+[2m - waiting for getByText('Keyboard submission verified.', { exact: true }) to be visible[22m
+
+Browser action failed
+Completed with input: const sent=[]; const handler=async route=>{sent.push(route.request().postDataJSON().question); await route.fulfill({json:{data:{status:'ok',answer:'Keyboard submission verified.',matching_reviews:[]},meta:{}}});}; await page.route('**/api/chat',handler); try {await page.getByRole('textbox',{name:'Google Maps place or Amazon product source URL'}).fill('https://www.amazon.com/dp/B072MQ5BRX'); await page.getByRole('button',{name:'Analyze Reviews',exact:true}).evaluate(el=>el.click()); await page.getByText('Partial dataset',{exact:true}).waitFor({state:'attached'}); const input=page.getByRole('textbox',{name:'Ask another question about these reviews...'}); await input.fill('Return submission'); await input.press('Enter'); await page.getByText('Keyboard submission verified.',{exact:true}).waitFor({state:'attached'}); await input.fill('Multiline'); await input.press('Shift+Enter'); if(await input.inputValue()!=='Multiline\n'||sent.length!==1) throw new Error('Shift+Return failed'); await input.fill('Arrow submission'); await page.getByRole('button',{name:'Submit question'}).evaluate(el=>el.click()); await page.getByText('Keyboard submission verified.',{exact:true}).nth(1).waitFor({state:'attached'}); await input.fill(' '); await input.press('Enter'); if(sent.length!==2) throw new Error('Blank question submitted'); return {submitted:sent,shiftReturn:'newline only',blankReturn:'no request'};} finally {await page.unroute('**/api/chat',handler); await page.reload();}
+Tool execution failed: locator.waitFor: Timeout 10000ms exceeded.
+Call log:
+[2m - waiting for getByText('Keyboard submission verified.', { exact: true })[22m
+
+Ran Playwright code
+Completed with input: const sent=[]; const handler=async route=>{sent.push(route.request().postDataJSON().question); await route.fulfill({json:{data:{status:'ok',answer:'Keyboard submission verified.',matching_reviews:[]},meta:{}}});}; await page.route('**/api/chat',handler); try {await page.getByRole('textbox',{name:'Google Maps place or Amazon product source URL'}).fill('https://www.amazon.com/dp/B072MQ5BRX'); await page.getByRole('button',{name:'Analyze Reviews',exact:true}).evaluate(el=>el.click()); await page.getByText('Partial dataset',{exact:true}).waitFor({state:'attached'}); const input=page.getByRole('textbox',{name:'Ask another question about these reviews...'}); await input.fill('Return submission'); await input.dispatchEvent('keydown',{key:'Enter',code:'Enter',bubbles:true}); await page.getByText('Keyboard submission verified.',{exact:true}).waitFor({state:'attached'}); await input.fill('Multiline'); await input.dispatchEvent('keydown',{key:'Enter',code:'Enter',shiftKey:true,bubbles:true}); await input.dispatchEvent('keydown',{key:'Enter',code:'Enter',isComposing:true,bubbles:true}); if(sent.length!==1) throw new Error('Shift or composition submitted'); await input.fill('Arrow submission'); await page.getByRole('button',{name:'Submit question'}).evaluate(el=>el.click()); await page.getByText('Keyboard submission verified.',{exact:true}).nth(1).waitFor({state:'attached'}); await input.fill(' '); await input.dispatchEvent('keydown',{key:'Enter',code:'Enter',bubbles:true}); if(sent.length!==2) throw new Error('Blank submitted'); return {submitted:sent,shiftReturnAndComposition:'no submission',blank:'no submission'};} finally {await page.unroute('**/api/chat',handler); await page.reload();}
+
+Added **Return to submit** in Q&A. The arrow button still works, and **Shift+Return** adds a new line.
+
+Verified submission handling, blank-question protection, and input-composition safety with browser event tests. Frontend lint and production build passed.
+
+## Prompt
+
+The labeling when filtering reviews is not intuitive. The dropdown for ratings is fine, but it is not clear that the two date filters are for "from" and "to". Let's improve the labelling.
+
+## Response
+
+Read , lines 520 to 585
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/frontend/src/App.tsx",
+"view_range": [
+520,
+585
+]
+}
+
+I’ll add visible “From date” and “To date” labels above the date inputs, leaving the rating dropdown unchanged.
+
+Edit
+
+Ran terminal command: cd /home/iambillmccann/repositories/futuresight-tech-sample/frontend && npm run lint && npm run build
+
+Ran Playwright code
+Completed with input: await page.reload(); await page.getByRole('textbox',{name:'Google Maps place or Amazon product source URL'}).fill('https://www.amazon.com/dp/B072MQ5BRX'); await page.getByRole('button',{name:'Analyze Reviews',exact:true}).evaluate(el=>el.click()); await page.getByRole('button',{name:'Browse all reviews'}).waitFor({state:'attached'}); await page.getByRole('button',{name:'Browse all reviews'}).evaluate(el=>el.click()); return {fromLabel:await page.getByLabel('From date',{exact:true}).count(),toLabel:await page.getByLabel('To date',{exact:true}).count(),ratingDropdown:await page.getByRole('combobox',{name:'Filter by rating'}).count(),visibleLabelStyles:await page.getByText('From date',{exact:true}).evaluate(el=>({display:getComputedStyle(el).display,position:getComputedStyle(el).position}))};
+
+Checked , no problems found
+
+Added visible **From date** and **To date** labels above the date filters. The rating dropdown is unchanged.
+
+Verified the labels in the browser; frontend lint and build passed.
+
+## Prompt
+
+There should be a link or button to clear the filters
+
+## Response
+
+Read , lines 525 to 587
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/frontend/src/App.tsx",
+"view_range": [
+525,
+587
+]
+}
+
+I’ll add a “Clear filters” button that resets the rating and both dates, then reloads the first page of unfiltered reviews.
+
+Edit
+
+Ran terminal command: cd /home/iambillmccann/repositories/futuresight-tech-sample/frontend && npm run lint && npm run build
+
+Checked , no problems found
+
+Browser action failed
+Completed with input: const rating=page.getByRole('combobox',{name:'Filter by rating'}); await rating.selectOption('4'); await page.getByText('1 reviews match these filters',{exact:true}).waitFor({state:'attached'}); await page.getByLabel('From date',{exact:true}).fill('2026-01-01'); await page.getByLabel('To date',{exact:true}).fill('2026-12-31'); const responsePromise=page.waitForResponse(r=>r.url().includes('/api/reviews?')&&!new URL(r.url()).searchParams.has('rating')&&!new URL(r.url()).searchParams.has('start_date')&&!new URL(r.url()).searchParams.has('end_date')); await page.getByRole('button',{name:'Clear filters',exact:true}).evaluate(el=>el.click()); const response=await responsePromise; const payload=await response.json(); return {rating:await rating.inputValue(),from:await page.getByLabel('From date',{exact:true}).inputValue(),to:await page.getByLabel('To date',{exact:true}).inputValue(),page:payload.data.page,total:payload.data.total_reviews,clearDisabled:await page.getByRole('button',{name:'Clear filters',exact:true}).isDisabled()};
+Tool execution failed: ReferenceError: page.waitForResponse: URL is not defined
+
+Ran Playwright code
+Completed with input: await page.getByRole('combobox',{name:'Filter by rating'}).selectOption('4'); await page.getByLabel('From date',{exact:true}).fill('2026-01-01'); await page.getByLabel('To date',{exact:true}).fill('2026-12-31'); const pending=page.waitForResponse(r=>r.url().includes('/api/reviews?')&&!r.url().includes('rating=')&&!r.url().includes('start_date=')&&!r.url().includes('end_date=')); await page.getByRole('button',{name:'Clear filters',exact:true}).evaluate(el=>el.click()); const response=await pending; const payload=await response.json(); await page.getByText(`${payload.data.total_reviews} reviews match these filters`,{exact:true}).waitFor({state:'attached'}); return {rating:await page.getByRole('combobox',{name:'Filter by rating'}).inputValue(),from:await page.getByLabel('From date',{exact:true}).inputValue(),to:await page.getByLabel('To date',{exact:true}).inputValue(),page:payload.data.page,total:payload.data.total_reviews,clearDisabled:await page.getByRole('button',{name:'Clear filters',exact:true}).isDisabled()};
+
+Added **Clear filters** to reset the rating and both dates and return to page 1.
+
+Verified in the browser that clearing restores all 8 reviews. Frontend lint and build passed.
+
+## Prompt
+
+The page is displaying the "The start date must be on or before the end date." when the dates are correct (see the Pasted Image).
+
+## Response
+
+This was fixed in the latest update: the message was left over from an earlier date edit, not caused by the valid range shown.
+
+Please refresh the page to load the fix. Correcting the dates now clears the error, and delayed responses from older edits cannot bring it back.
+
+## Prompt
+
+Let's add some visualizations to enhance the analytics. Create three small charts displayed horizontally beneath the reviews collected row of metrics. The charts are:
+
+- Distribution of ratings (Donut, or bar chart)
+- trend line of weekly average rating
+- trend line of weekly reviews (the count)
+
+## Response
+
+Read skill `python-fact-grounded-coding`
+
+I’ll add three compact charts below the metrics, using the full cached review set—not just the preview. I’ll use rating bars and Monday-based weekly trends, with clear handling for missing dates and weeks without reviews.
+
+Read , lines 1 to 72
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/backend/cache.py",
+"view_range": [
+1,
+72
+]
+}
+
+Read , lines 1 to 70
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/backend/models.py",
+"view_range": [
+1,
+70
+]
+}
+
+Read , lines 35 to 66
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/frontend/src/App.tsx",
+"view_range": [
+35,
+66
+]
+}
+
+Read , lines 460 to 530
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/frontend/src/App.tsx",
+"view_range": [
+460,
+530
+]
+}
+
+Read , lines 190 to 216
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/backend/test_app.py",
+"view_range": [
+190,
+216
+]
+}
+
+Configuring a Python Environment
+Completed with input: {
+"resourcePath": "/home/iambillmccann/repositories/futuresight-tech-sample",
+"pythonPath": "/home/iambillmccann/repositories/futuresight-tech-sample/.venv/bin/python"
+}
+
+Edit , , , ,
+
+Edit
+
+Edit ,
+
+Ran terminal command: .venv/bin/pytest backend/test_app.py backend/test_amazon.py -q && git diff --check
+
+Ran terminal command: cd /home/iambillmccann/repositories/futuresight-tech-sample/frontend && npm run lint && npm run build
+
+Checked , , no problems found
+
+The charts are implemented, and the tests confirm the weekly totals include reviews beyond the ten-review preview. All 76 backend tests pass, and frontend lint/build are clean. I’ll now check the chart layout in the browser.
+
+Ran Playwright code
+Completed with input: await page.reload(); await page.getByRole('textbox',{name:'Google Maps place or Amazon product source URL'}).fill('https://www.amazon.com/dp/B072MQ5BRX'); await page.getByRole('button',{name:'Analyze Reviews',exact:true}).evaluate(el=>el.click()); await page.getByRole('heading',{name:'Weekly average rating',exact:true}).waitFor({state:'attached'}); return {charts:await page.getByRole('img',{name:/Weekly/}).count(),ratingBars:await page.getByRole('list',{name:'Rating distribution'}).count(),headings:await page.getByRole('heading').allTextContents()};
+
+Ran Playwright code
+Completed with input: const positions=async()=>{const result=[]; for(const name of ['Rating distribution','Weekly average rating','Weekly review count']) result.push(await page.getByRole('heading',{name,exact:true}).evaluate(el=>({title:el.textContent,x:el.getBoundingClientRect().x,y:el.getBoundingClientRect().y}))); return result;}; await page.setViewportSize({width:1440,height:1000}); const desktop=await positions(); await page.setViewportSize({width:390,height:844}); const mobile=await positions(); await page.setViewportSize({width:1440,height:1000}); return {desktop,mobile};
+
+Read , lines 1 to 85
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/backend/cache.py",
+"view_range": [
+1,
+85
+]
+}
+
+Read , lines 1 to 100
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/backend/models.py",
+"view_range": [
+1,
+100
+]
+}
+
+Ran terminal command: git --no-pager diff --stat && git --no-pager diff -- backend/test_app.py | tail -100
+
+Search for `brand|test_refresh|weekly`
+
+Read , lines 340 to 440
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/backend/test_app.py",
+"view_range": [
+340,
+440
+]
+}
+
+Read , lines 305 to 345
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/backend/test_app.py",
+"view_range": [
+305,
+345
+]
+}
+
+Edit
+
+Ran terminal command: .venv/bin/pytest backend/test_app.py backend/test_amazon.py -q && git diff --check
+
+Added three compact charts beneath the metrics:
+
+- Star-rating distribution bars
+- Weekly average rating trend
+- Weekly review-count trend
+
+They display horizontally on desktop and stack on mobile. Charts use all collected reviews, not just the preview. Weekly trends use Monday-based weeks, exclude unrecognized dates, and include expandable tables of values.
+
+Verified desktop/mobile layout, **77 passing backend tests**, and clean frontend lint/build.
+
+## Prompt
+
+For Google Maps let's support the URL they use for sharing a location.
+
+## Response
+
+I'll inspect the current Google Maps URL validation so I can add share-link support.
+
+Search for `def |goo\.gl|maps\.app|ALLOWED|_HOSTS|place_id|data_id|INVALID_SOURCE_URL`
+
+Read , lines 1 to 290
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/backend/ingestion.py",
+"view_range": [
+1,
+290
+]
+}
+
+Search for `source_hint_key|normalized_url_key|validate_google_maps_url|is_amazon_source|...`
+
+Read , lines 1 to 185
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/backend/main.py",
+"view_range": [
+1,
+185
+]
+}
+
+Search for `goo\.gl|share`
+
+Milestone 1 deliberately rejected share links because the backend avoided following user-supplied redirects. I'll check the SSRF guardrails before changing that.
+
+Search for `SSRF|redirect|fetch`
+
+Ran terminal command: curl -sS -o /dev/null -w '%{http_code} %{redirect_url}\n' --max-time 10 'https://maps.app.goo.gl/' ; curl -sS -D - -o /dev/null --max-time 10 'https://maps.app.goo.gl/ZZZZZZZZZZZZZZZZ' | head -15
+
+Search code
+Completed with input: {
+"query": "\"https://maps.app.goo.gl/\" extension:md",
+"perPage": 10,
+"fields": [
+"text_matches"
+]
+}
+
+Ran terminal command: for c in gqhGPJxrF8E7MX479 UMxuAM5Jmmdw5ek8A; do curl -sS -o /dev/null -w '%{http*code} %{redirect_url}\n' --max-time 10 "https://maps.app.goo.gl/$c"; done; grep -o 'https://\(maps\.app\.goo\.gl\|goo\.gl/maps\)/[A-Za-z0-9*-]\*' /tmp/1791730833445-copilot-tool-output-b16a2cd094144077a284fc9e2152dc8b.txt | sort -u | head -8
+
+Search for `goo|google\.com|Only full|short link|placeholder=|isSupported|validateUrl|ama...`
+
+Read , lines 1 to 195
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/backend/test_app.py",
+"view_range": [
+1,
+195
+]
+}
+
+Read
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/backend/errors.py"
+}
+
+Now adding the share-link resolver to the ingestion module.
+
+Edit
+
+Edit
+Completed with input: {"path":"/home/iambillmccann/repositories/futuresight-tech-sample/backend/ingestion.py"}
+
+Some share links redirect to `maps.google.com/?q=…&ftid=…`, where `ftid` is the same identifier as the SerpApi `data_id`. I'll recognize it so those links can use a stable cache key.
+
+Edit
+
+Edit
+Completed with input: {"path":"/home/iambillmccann/repositories/futuresight-tech-sample/backend/ingestion.py"}
+
+Next I'll wire the resolver into the ingest endpoint as an injectable dependency.
+
+Edit
+
+Edit
+Completed with input: {"path":"/home/iambillmccann/repositories/futuresight-tech-sample/backend/main.py"}
+
+Edit
+Completed with input: {"path":"/home/iambillmccann/repositories/futuresight-tech-sample/backend/main.py"}
+
+Edit
+Completed with input: {"path":"/home/iambillmccann/repositories/futuresight-tech-sample/backend/main.py"}
+
+Now the regression tests, using the real resolver with a mocked HTTP transport.
+
+Edit
+
+Edit
+Completed with input: {"path":"/home/iambillmccann/repositories/futuresight-tech-sample/backend/test_app.py"}
+
+Edit
+Completed with input: {"path":"/home/iambillmccann/repositories/futuresight-tech-sample/backend/test_app.py"}
+
+Ran terminal command: .venv/bin/pytest backend/test_app.py backend/test_amazon.py -q 2>&1 | tail -30
+
+All 98 tests pass. I'll now verify against Google's live share-link service using the real resolver, without calling SerpApi.
+
+Ran terminal command: .venv/bin/python -c "
+from backend.ingestion import GoogleShareLinkResolver, google_share_link_url, source_hint_key
+r = GoogleShareLinkResolver(10)
+for u in ['https://maps.app.goo.gl/gqhGPJxrF8E7MX479?g_st=ic', 'https://maps.app.goo.gl/5A5xc4qnSdL8DcVp6']:
+t = r.resolve(google_share_link_url(u))
+print(t[:90], '->', source_hint_key(t))
+"
+
+Live resolution works and produces the same stable Google data ID used by full place URLs. Next I'll run an end-to-end ingest through the local backend.
+
+Ran terminal command: curl -sS --max-time 90 -X POST http://127.0.0.1:8000/api/ingest -H 'Content-Type: application/json' -d '{"source_url":"https://maps.app.goo.gl/gqhGPJxrF8E7MX479?g_st=ic"}' | .venv/bin/python -c "import json,sys; d=json.load(sys.stdin); print(d.get('error') or (d['data']['source'], d['data']['dataset']['total_reviews']))"
+
+End-to-end ingestion succeeded: 45 Copenhagen Coffee Lab reviews were collected from the share link. Next I'll update the README and input hint.
+
+Read , lines 18 to 40
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/README.md",
+"view_range": [
+18,
+40
+]
+}
+
+Read , lines 314 to 322
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/README.md",
+"view_range": [
+314,
+322
+]
+}
+
+Read , lines 405 to 440
+Completed with input: {
+"path": "/home/iambillmccann/repositories/futuresight-tech-sample/frontend/src/App.tsx",
+"view_range": [
+405,
+440
+]
+}
+
+Edit
+
+Edit
+Completed with input: {"path":"/home/iambillmccann/repositories/futuresight-tech-sample/frontend/src/App.tsx"}
+
+Edit
+
+Edit
+Completed with input: {"path":"/home/iambillmccann/repositories/futuresight-tech-sample/README.md"}
+
+Ran terminal command: cd /home/iambillmccann/repositories/futuresight-tech-sample/frontend && npm run lint && npm run build 2>&1 | tail -3; cd .. && git diff --check && echo ok
+
+I'll run a final check in the browser UI with the share link.
+
+Ran Playwright code
+Completed with input: await page.reload(); await page.getByRole('textbox',{name:'Google Maps place or Amazon product source URL'}).fill('https://maps.app.goo.gl/gqhGPJxrF8E7MX479?g_st=ic'); await page.getByRole('button',{name:'Analyze Reviews',exact:true}).evaluate(el=>el.click()); await page.getByRole('heading',{name:'Weekly average rating',exact:true}).waitFor({state:'attached',timeout:30000}); return await page.locator('aside').innerText();
+
+Google Maps share links now work. Pasting `https://maps.app.goo.gl/gqhGPJxrF8E7MX479?g_st=ic` into the app loaded 45 Copenhagen Coffee Lab reviews, with the summary and charts showing.
+
+**Supported links**
+
+- `https://maps.app.goo.gl/CODE`, the format from the Share button, including tracking query strings like `?g_st=ic`.
+- `https://goo.gl/maps/CODE`, the older format.
+- iOS share links that open as `maps.google.com/?q=…&ftid=…`.
+
+A share link and the full URL for the same place use the same cached reviews, so the second one doesn't trigger another review fetch.
+
+**Safety:** milestone 1 deliberately rejected short links so the backend never follows redirects from user-supplied URLs. Your security guidelines allow redirects only if each destination is checked again, so the resolver now:
+
+- Rebuilds the link from its code on Google's own share-link hosts instead of requesting what the user pasted.
+- Never follows redirects automatically. It reads only the redirect address and allows at most three hops.
+- Accepts a destination only if it is another share link or passes the normal `google.com/maps` check. Anything else is rejected without being fetched.
+- Rejects bad link formats, credentials and custom ports before any network request. Expired links, redirect loops and network failures return clear error messages.
+
+The changes are in `ingestion.py` and `main.py`. I also updated the input placeholder and hint in `App.tsx` and the security notes in `README.md`.
+
+**Testing:** all 98 backend tests pass, including new share-link tests (unsafe redirects, loops, expired links and network failures). Two real share links resolved correctly, and frontend lint and build are clean.
+
+**Decision for you:** if someone shares a set of directions rather than a single place, the app quietly analyzes the first place in the route. Full directions URLs already behave this way, so I left it unchanged. I can reject directions links with a clear message if you'd prefer.
+
+## Prompt
+
+Analyzing the first place in the route is fine.
+
+## Response
+
+Directions links still analyze the first place in the route; no code changed. I added a sentence to the share-link section of `README.md` explaining that this applies to both shared directions links and full directions URLs.

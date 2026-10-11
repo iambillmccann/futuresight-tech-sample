@@ -18,7 +18,21 @@ routes `/api/*` to the backend, so browser requests stay same-origin and no
 production CORS allowlist is needed. There is no database, Redis, user login,
 durable review storage, or durable chat history.
 
-The backend validates a full `google.com/maps` place URL or supported `amazon.com` product URL and sends only derived search/provider identifiers to the fixed SerpApi endpoint. It never fetches the submitted URL. SerpApi records are normalized into a shared review model; malformed records are skipped and reported. Google Maps cache keys prefer the stable Place ID or SerpApi data ID and fall back to a normalized URL hash. Amazon keys include platform, marketplace, and ASIN (`amazon:amazon.com:asin:ASIN`), so product URL variants share a cache entry without colliding with Google Maps.
+The backend validates a full `google.com/maps` place URL, a Google Maps share link, or a supported `amazon.com` product URL and sends only derived search/provider identifiers to the fixed SerpApi endpoint. It never fetches a submitted full URL. SerpApi records are normalized into a shared review model; malformed records are skipped and reported. Google Maps cache keys prefer the stable Place ID or SerpApi data ID and fall back to a normalized URL hash. Amazon keys include platform, marketplace, and ASIN (`amazon:amazon.com:asin:ASIN`), so product URL variants share a cache entry without colliding with Google Maps.
+
+### Google Maps share links
+
+Links copied from Google Maps' **Share** button (`https://maps.app.goo.gl/CODE`,
+or legacy `https://goo.gl/maps/CODE`) are resolved before ingestion. The backend
+rebuilds the link from its code on those fixed Google hosts (query strings,
+credentials, ports, and extra path segments are dropped or rejected), requests
+it without automatic redirects, reads only the `Location` header, and allows at
+most three hops. Each hop must be another share link or a destination that passes
+the normal `google.com/maps` validation; anything else is rejected without being
+fetched. The resolved place URL then follows the standard path, so a share link and
+the full URL for the same place share one cache entry. Expired links, redirect
+loops, and network failures return explicit errors. A shared directions link (or
+full directions URL) is analyzed as the first place in the route.
 
 ### Amazon coverage
 
@@ -50,6 +64,9 @@ product `B072MQ5BRX` returned 8 usable customer text reviews. Automated tests us
 mocked HTTP responses, not paid live calls.
 
 Each Q&A call resolves the active source key from the backend cache. The versioned system prompt names the current business and platform, treats review text as untrusted evidence, prohibits external knowledge, requires explicit refusals, and distinguishes insufficient evidence from an out-of-scope request. Review context, dataset size, request lengths, provider timeouts, and cache size are bounded.
+
+When information is missing, the prompt asks for plain-language responses beginning
+with "The reviews do not contain information about ..." rather than "review dataset".
 
 ## Prerequisites
 
@@ -112,6 +129,17 @@ npm run dev
 ```
 
 Open `http://localhost:5173`, paste a full Google Maps place URL or supported Amazon product URL, and select **Analyze Reviews**. The platform is detected from the URL.
+
+In Q&A, press Return or click the arrow button to submit a question.
+Use Shift+Return to add a new line.
+
+Three charts below the metrics show star-rating distribution, weekly average
+rating, and weekly review counts for the full active cached review set, unaffected
+by browsing filters. Weeks start on Monday using the review's recorded calendar
+date. Unknown/missing dates are excluded from trends and counted in a note.
+Empty intervening weeks have zero reviews but no average rating (a gap in that
+line). These charts describe the collected sample, not the platform's entire
+review history. Weekly values are also available in expandable tables.
 
 ## AWS cloud development
 
@@ -301,7 +329,7 @@ Tests use deterministic provider and model doubles; CI never depends on live Ser
 ## Assumptions and limitations
 
 - Google Maps is the only Milestone 1 platform.
-- A submitted URL must be a full `google.com/maps` location URL or supported `amazon.com` product URL. Short-link resolution is deliberately excluded so the backend never follows user-controlled redirects.
+- A submitted URL must be a full `google.com/maps` location URL, a `maps.app.goo.gl`/`goo.gl/maps` share link, or a supported `amazon.com` product URL. Share links are resolved only by reading redirect headers from those fixed Google hosts, and every hop is revalidated; arbitrary redirects are never followed.
 - SerpApi determines available review coverage. `MAX_REVIEWS` bounds the exact normalized dataset used for both summary and Q&A.
 - Cache state is shared by anonymous visitors in one backend process and disappears on expiration, eviction, or restart.
 - Concurrent requests with the same submitted stable identifier or normalized URL share one in-flight ingestion. A previously resolved URL alias also reuses its stable provider-key entry.

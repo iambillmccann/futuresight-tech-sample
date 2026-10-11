@@ -28,6 +28,12 @@ class Source(BaseModel):
     provider_id: Optional[str] = None
 
 
+class WeeklyReviewSummary(BaseModel):
+    week_start: str
+    review_count: int
+    average_rating: float
+
+
 class DatasetSummary(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -38,6 +44,8 @@ class DatasetSummary(BaseModel):
     latest_review: Optional[str]
     skipped_review_count: int
     ingestion_status: Literal["complete", "partial"]
+    weekly_reviews: List[WeeklyReviewSummary] = Field(default_factory=list)
+    undated_review_count: int = 0
 
 
 class Dataset(BaseModel):

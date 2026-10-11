@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
+import { ReviewCharts } from './components/ReviewCharts'
+import type { WeeklyReviews } from './components/ReviewCharts'
 import {
   ArrowRight,
   ChevronLeft,
@@ -44,6 +46,8 @@ type DatasetSummary = {
   rating_distribution: Record<string, number>
   skipped_review_count: number
   ingestion_status: 'complete' | 'partial'
+  weekly_reviews: WeeklyReviews[]
+  undated_review_count: number
 }
 
 type Analysis = {
@@ -116,6 +120,8 @@ function App() {
   const [ratingFilter, setRatingFilter] = useState('')
   const [startDateFilter, setStartDateFilter] = useState('')
   const [endDateFilter, setEndDateFilter] = useState('')
+  const [reviewError, setReviewError] = useState('')
+  const reviewRequestId = useRef(0)
 
   const loadAnalysis = async (urlToAnalyze = sourceUrl) => {
     if (loading || asking || refreshing || exporting) return
@@ -125,6 +131,8 @@ function App() {
     }
     setLoading(true)
     setError('')
+    reviewRequestId.current += 1
+    setReviewError('')
     try {
       const response = await fetch('/api/ingest', {
         method: 'POST',
@@ -207,6 +215,8 @@ function App() {
 
   const startNewAnalysis = () => {
     if (loading || asking || refreshing || exporting) return
+    reviewRequestId.current += 1
+    setReviewError('')
     setSourceUrl('')
     setAnalysis(null)
     setTranscript([])
@@ -220,6 +230,8 @@ function App() {
     if (!analysis || refreshing || loading || asking || exporting) return
     setRefreshing(true)
     setError('')
+    reviewRequestId.current += 1
+    setReviewError('')
     try {
       const response = await fetch('/api/refresh', {
         method: 'POST',
@@ -251,7 +263,9 @@ function App() {
       endDate: endDateFilter,
     },
   ) => {
-    if (!analysis) return
+    if (!analysis || loading || refreshing) return
+    const requestId = ++reviewRequestId.current
+    setReviewError('')
     const query = new URLSearchParams({
       source_key: analysis.source.source_key,
       page: String(page),
@@ -264,6 +278,7 @@ function App() {
     try {
       const response = await fetch(`/api/reviews?${query.toString()}`)
       const payload = await response.json()
+      if (requestId !== reviewRequestId.current) return
       if (!response.ok) {
         throw new Error(payload.error?.message || 'Unable to load reviews.')
       }
@@ -271,7 +286,8 @@ function App() {
       setReviewTotal(payload.data.total_reviews)
       setReviewPage(page)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to load reviews.')
+      if (requestId !== reviewRequestId.current) return
+      setReviewError(err instanceof Error ? err.message : 'Unable to load reviews.')
     }
   }
 
@@ -399,7 +415,7 @@ function App() {
                   value={sourceUrl}
                   onChange={(event) => setSourceUrl(event.target.value)}
                   className="h-11 w-full rounded-md border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm text-slate-700 outline-none ring-0 transition focus:border-[#5b4ad9] focus:bg-white"
-                  placeholder="Google Maps place URL or https://www.amazon.com/dp/ASIN"
+                  placeholder="Google Maps place or share link, or https://www.amazon.com/dp/ASIN"
                   aria-label="Google Maps place or Amazon product source URL"
                 />
               </div>
@@ -412,7 +428,8 @@ function App() {
               </button>
             </div>
             <p className="mt-2 text-xs text-slate-500">
-              Google Maps places and amazon.com products are supported. Amazon retrieves
+              Google Maps places (full URLs or maps.app.goo.gl share links) and amazon.com
+              products are supported. Amazon retrieves
               only the customer reviews visible on the product page, not the full review history.
             </p>
           </div>
@@ -485,6 +502,11 @@ function App() {
                     <div className="mt-2 text-base font-semibold text-slate-900">{analysis.source.platform}</div>
                   </div>
                 </div>
+                <ReviewCharts
+                  distribution={analysis.dataset.summary.rating_distribution}
+                  weeks={analysis.dataset.summary.weekly_reviews}
+                  undatedCount={analysis.dataset.summary.undated_review_count}
+                />
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => void refreshAnalysis()}
@@ -531,7 +553,7 @@ function App() {
 
                 {browseOpen ? (
                   <div className="mb-3 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-3">
-                    <label className="flex items-center gap-2 text-sm text-slate-600">
+                    <label className="flex items-center gap-2 self-end text-sm text-slate-600">
                       <Filter className="h-4 w-4" />
                       <span className="sr-only">Filter by rating</span>
                       <select
@@ -551,7 +573,7 @@ function App() {
                       </select>
                     </label>
                     <label className="text-sm text-slate-600">
-                      <span className="sr-only">Reviews from</span>
+                      <span className="mb-1 block font-medium">From date</span>
                       <input
                         type="date"
                         value={startDateFilter}
@@ -561,11 +583,10 @@ function App() {
                           void loadReviews(1, { rating: ratingFilter, startDate, endDate: endDateFilter })
                         }}
                         className="h-10 w-full rounded-md border border-slate-200 bg-white px-3"
-                        aria-label="Reviews from date"
                       />
                     </label>
                     <label className="text-sm text-slate-600">
-                      <span className="sr-only">Reviews through</span>
+                      <span className="mb-1 block font-medium">To date</span>
                       <input
                         type="date"
                         value={endDateFilter}
@@ -575,9 +596,29 @@ function App() {
                           void loadReviews(1, { rating: ratingFilter, startDate: startDateFilter, endDate })
                         }}
                         className="h-10 w-full rounded-md border border-slate-200 bg-white px-3"
-                        aria-label="Reviews through date"
                       />
                     </label>
+                    <div className="flex justify-end sm:col-span-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRatingFilter('')
+                          setStartDateFilter('')
+                          setEndDateFilter('')
+                          void loadReviews(1, { rating: '', startDate: '', endDate: '' })
+                        }}
+                        disabled={!ratingFilter && !startDateFilter && !endDateFilter}
+                        className="rounded-md px-2 py-1 text-sm font-medium text-[#5b4ad9] transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:text-slate-400"
+                      >
+                        Clear filters
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                {reviewError ? (
+                  <div role="alert" className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                    {reviewError}
                   </div>
                 ) : null}
 
@@ -736,6 +777,12 @@ function App() {
                 <textarea
                   value={question}
                   onChange={(event) => setQuestion(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+                      event.preventDefault()
+                      void askQuestion()
+                    }
+                  }}
                   rows={1}
                   className="w-full resize-none bg-transparent py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
                   placeholder="Ask another question about these reviews..."
@@ -750,6 +797,9 @@ function App() {
                 {asking ? <span className="text-sm">Thinking…</span> : <ArrowRight className="h-4 w-4" />}
               </button>
             </div>
+            <p className="mt-2 text-xs text-slate-500">
+              Press Return to send. Shift+Return adds a new line.
+            </p>
 
             <div className="mt-4 flex flex-wrap gap-2 text-sm">
               {suggestionPrompts.map((prompt) => (

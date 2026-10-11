@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from threading import Lock
 from typing import Callable
 
-from backend.models import Dataset, DatasetSummary, IngestResult, ProviderDataset
+from backend.models import Dataset, DatasetSummary, IngestResult, ProviderDataset, WeeklyReviewSummary
 
 
 @dataclass
@@ -19,13 +19,15 @@ def build_summary(provider_dataset: ProviderDataset) -> DatasetSummary:
     reviews = provider_dataset.reviews
     distribution = {str(rating): 0 for rating in range(1, 6)}
     dated_reviews: list[str] = []
+    weekly_ratings: dict[str, list[float]] = {}
     for review in reviews:
         distribution[str(round(review.rating))] += 1
         if review.date:
             try:
-                dated_reviews.append(
-                    datetime.fromisoformat(review.date.replace("Z", "+00:00")).date().isoformat()
-                )
+                review_date = datetime.fromisoformat(review.date.replace("Z", "+00:00")).date()
+                dated_reviews.append(review_date.isoformat())
+                week_start = (review_date - timedelta(days=review_date.weekday())).isoformat()
+                weekly_ratings.setdefault(week_start, []).append(review.rating)
             except ValueError:
                 pass
     return DatasetSummary(
@@ -36,6 +38,15 @@ def build_summary(provider_dataset: ProviderDataset) -> DatasetSummary:
         rating_distribution=distribution,
         earliest_review=min(dated_reviews) if dated_reviews else None,
         latest_review=max(dated_reviews) if dated_reviews else None,
+        weekly_reviews=[
+            WeeklyReviewSummary(
+                week_start=week,
+                review_count=len(ratings),
+                average_rating=round(sum(ratings) / len(ratings), 2),
+            )
+            for week, ratings in sorted(weekly_ratings.items())
+        ],
+        undated_review_count=len(reviews) - len(dated_reviews),
         skipped_review_count=provider_dataset.skipped_review_count,
         ingestion_status=(
             "partial"

@@ -12,10 +12,12 @@ from backend.cache import ReviewDatasetCache
 from backend.config import Settings
 from backend.errors import AppError, DatasetUnavailableError
 from backend.ingestion import (
+    GoogleShareLinkResolver,
     SerpApiAmazonIngestionProvider,
     SerpApiIngestionProvider,
     amazon_product_asin,
     amazon_source_key,
+    google_share_link_url,
     is_amazon_source,
     source_hint_key,
     validate_google_maps_url,
@@ -44,6 +46,10 @@ class QuestionAnswerer(Protocol):
     ) -> ChatResult: ...
 
 
+class ShareLinkResolver(Protocol):
+    def resolve(self, share_url: str) -> str: ...
+
+
 def success(data: Any, **meta: Any) -> dict[str, Any]:
     return {"data": data, "meta": meta}
 
@@ -54,8 +60,12 @@ def create_app(
     question_answerer: QuestionAnswerer | None = None,
     cache: ReviewDatasetCache | None = None,
     amazon_ingestion_provider: IngestionProvider | None = None,
+    share_link_resolver: ShareLinkResolver | None = None,
 ) -> FastAPI:
     settings = settings or Settings.from_env()
+    share_link_resolver = share_link_resolver or GoogleShareLinkResolver(
+        settings.provider_timeout_seconds
+    )
     ingestion_provider = ingestion_provider or SerpApiIngestionProvider(
         settings.serpapi_api_key,
         settings.provider_timeout_seconds,
@@ -144,16 +154,20 @@ def create_app(
 
     @application.post("/api/ingest")
     def ingest_reviews(payload: IngestRequest) -> Dict[str, Any]:
-        if is_amazon_source(payload.source_url):
-            hint_key = amazon_source_key(amazon_product_asin(payload.source_url))
+        source_url = payload.source_url
+        share_url = google_share_link_url(source_url)
+        if share_url:
+            source_url = share_link_resolver.resolve(share_url)
+        if is_amazon_source(source_url):
+            hint_key = amazon_source_key(amazon_product_asin(source_url))
             provider = amazon_ingestion_provider
         else:
-            validate_google_maps_url(payload.source_url)
-            hint_key = source_hint_key(payload.source_url)
+            validate_google_maps_url(source_url)
+            hint_key = source_hint_key(source_url)
             provider = ingestion_provider
         result = cache.get_or_ingest(
             hint_key,
-            lambda: provider.ingest(payload.source_url),
+            lambda: provider.ingest(source_url),
         )
         response_data = result.model_dump(mode="json")
         response_data["dataset"]["sample_reviews"] = response_data["dataset"][
