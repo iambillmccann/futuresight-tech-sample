@@ -375,11 +375,11 @@ function App() {
   }, [analysis])
 
   return (
-    <div className="min-h-screen bg-[#f3f4f6] text-slate-800 antialiased">
-      <header className="border-b border-slate-200 bg-white/80 backdrop-blur-sm">
+    <div className="min-h-screen bg-canvas text-slate-800 antialiased">
+      <header className="border-b border-slate-200 bg-surface/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-[1600px] items-center justify-between px-5 py-3.5">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#eef1ff] text-[#4f46e5] shadow-sm">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-soft text-brand-ink shadow-sm">
               <Search className="h-4 w-4" />
             </div>
             <div className="text-[15px] font-semibold tracking-tight text-slate-900">
@@ -391,7 +391,7 @@ function App() {
             <button
               onClick={startNewAnalysis}
               disabled={loading || asking || refreshing || exporting}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-surface px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
             >
               <Plus className="h-4 w-4" />
               New Analysis
@@ -404,7 +404,7 @@ function App() {
       </header>
 
       <main className="mx-auto flex max-w-[1600px] gap-6 px-5 py-5 lg:gap-8">
-        <section className="flex-1 min-w-0 rounded-xl border border-slate-200 bg-white shadow-sm">
+        <section className="flex-1 min-w-0 rounded-xl border border-slate-200 bg-surface shadow-sm">
           <div className="border-b border-slate-200 px-4 py-3">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
               <div className="relative flex-1">
@@ -414,14 +414,14 @@ function App() {
                 <input
                   value={sourceUrl}
                   onChange={(event) => setSourceUrl(event.target.value)}
-                  className="h-11 w-full rounded-md border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm text-slate-700 outline-none ring-0 transition focus:border-[#5b4ad9] focus:bg-white"
+                  className="h-11 w-full rounded-md border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm text-slate-700 outline-none ring-0 transition focus:border-brand focus:bg-surface"
                   placeholder="Google Maps place or share link, or https://www.amazon.com/dp/ASIN"
                   aria-label="Google Maps place or Amazon product source URL"
                 />
               </div>
               <button
                 onClick={() => void loadAnalysis()}
-                className="inline-flex h-11 items-center justify-center rounded-md bg-[#5b4ad9] px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4f41cc] disabled:opacity-60"
+                className="inline-flex h-11 items-center justify-center rounded-md bg-brand px-5 text-sm font-semibold text-brand-contrast shadow-sm transition hover:bg-brand-strong disabled:opacity-60"
                 disabled={loading || asking || refreshing || exporting || !sourceUrl.trim()}
               >
                 {loading ? 'Analyzing…' : 'Analyze Reviews'}
@@ -445,7 +445,7 @@ function App() {
               <div className="px-4 py-4">
                 <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-[#eef1ff] text-[#5b4ad9]">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-md bg-brand-soft text-brand-ink">
                       <MapPinned className="h-4 w-4" />
                     </div>
                     <span className="font-medium text-slate-700">Analysis completed</span>
@@ -473,7 +473,7 @@ function App() {
                   </div>
                 ))}
 
-                <div className="mt-4 grid gap-3 rounded-xl border border-slate-200 bg-white p-3 md:grid-cols-5">
+                <div className="mt-4 grid gap-3 rounded-xl border border-slate-200 bg-surface p-3 md:grid-cols-5">
                   <div className="rounded-lg bg-slate-50 p-3">
                     <div className="text-[11px] uppercase tracking-wide text-slate-500">Reviews collected</div>
                     <div className="mt-2 text-2xl font-semibold text-slate-900">{analysis.dataset.total_reviews.toLocaleString()}</div>
@@ -482,7 +482,7 @@ function App() {
                     <div className="text-[11px] uppercase tracking-wide text-slate-500">Average rating</div>
                     <div className="mt-2 flex items-center gap-2 text-2xl font-semibold text-slate-900">
                       {averageRating.toFixed(1)}
-                      <div className="flex text-[#f5b301] text-lg">
+                      <div className="flex text-star text-lg">
                         {getStars(averageRating).map((star, idx) => (
                           <span key={`${star}-${idx}`}>{star}</span>
                         ))}
@@ -511,7 +511,7 @@ function App() {
                   <button
                     onClick={() => void refreshAnalysis()}
                     disabled={refreshing || loading || asking || exporting}
-                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-surface px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 disabled:opacity-60"
                   >
                     <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
                     {refreshing ? 'Refreshing…' : 'Refresh reviews'}
@@ -519,14 +519,14 @@ function App() {
                   <button
                     onClick={() => void exportReviews()}
                     disabled={exporting || loading || refreshing}
-                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-surface px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300 disabled:opacity-60"
                   >
                     <Download className="h-4 w-4" />
                     {exporting ? 'Preparing CSV…' : 'Export reviews CSV'}
                   </button>
                   <button
                     onClick={exportSession}
-                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300"
+                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-surface px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-300"
                   >
                     <Download className="h-4 w-4" />
                     Export session Markdown
@@ -545,7 +545,7 @@ function App() {
                       setBrowseOpen(willOpen)
                       if (willOpen) void loadReviews(1)
                     }}
-                    className="text-sm font-medium text-[#5b4ad9]"
+                    className="text-sm font-medium text-brand-ink"
                   >
                     {browseOpen ? 'Show preview' : 'Browse all reviews'}
                   </button>
@@ -563,7 +563,7 @@ function App() {
                           setRatingFilter(rating)
                           void loadReviews(1, { rating, startDate: startDateFilter, endDate: endDateFilter })
                         }}
-                        className="h-10 w-full rounded-md border border-slate-200 bg-white px-3"
+                        className="h-10 w-full rounded-md border border-slate-200 bg-surface px-3"
                         aria-label="Filter by rating"
                       >
                         <option value="">All ratings</option>
@@ -582,7 +582,7 @@ function App() {
                           setStartDateFilter(startDate)
                           void loadReviews(1, { rating: ratingFilter, startDate, endDate: endDateFilter })
                         }}
-                        className="h-10 w-full rounded-md border border-slate-200 bg-white px-3"
+                        className="h-10 w-full rounded-md border border-slate-200 bg-surface px-3"
                       />
                     </label>
                     <label className="text-sm text-slate-600">
@@ -595,7 +595,7 @@ function App() {
                           setEndDateFilter(endDate)
                           void loadReviews(1, { rating: ratingFilter, startDate: startDateFilter, endDate })
                         }}
-                        className="h-10 w-full rounded-md border border-slate-200 bg-white px-3"
+                        className="h-10 w-full rounded-md border border-slate-200 bg-surface px-3"
                       />
                     </label>
                     <div className="flex justify-end sm:col-span-3">
@@ -608,7 +608,7 @@ function App() {
                           void loadReviews(1, { rating: '', startDate: '', endDate: '' })
                         }}
                         disabled={!ratingFilter && !startDateFilter && !endDateFilter}
-                        className="rounded-md px-2 py-1 text-sm font-medium text-[#5b4ad9] transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:text-slate-400"
+                        className="rounded-md px-2 py-1 text-sm font-medium text-brand-ink transition hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:text-slate-400"
                       >
                         Clear filters
                       </button>
@@ -622,7 +622,7 @@ function App() {
                   </div>
                 ) : null}
 
-                <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <div className="overflow-x-auto rounded-xl border border-slate-200 bg-surface">
                   <table className="min-w-full text-left text-sm">
                     <thead className="bg-slate-50 text-slate-600">
                       <tr>
@@ -643,7 +643,7 @@ function App() {
                       ) : (browseOpen ? reviews : analysis.dataset.sample_reviews).map((review) => (
                         <tr key={review.review_id} className="border-t border-slate-200 align-top">
                           <td className="px-4 py-3 text-slate-800">
-                            <div className="flex items-center gap-1 text-[#f5b301]">
+                            <div className="flex items-center gap-1 text-star">
                               {getStars(review.rating).map((star, idx) => (
                                 <span key={`${review.review_id}-${idx}`}>{star}</span>
                               ))}
@@ -658,7 +658,7 @@ function App() {
                                 href={safeExternalUrl(review.review_url) ?? undefined}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex items-center gap-1 whitespace-nowrap text-[#5b4ad9] hover:underline"
+                                className="inline-flex items-center gap-1 whitespace-nowrap text-brand-ink hover:underline"
                               >
                                 Source <ExternalLink className="h-3 w-3" />
                               </a>
@@ -680,7 +680,7 @@ function App() {
                       <button
                         onClick={() => void loadReviews(reviewPage - 1)}
                         disabled={reviewPage <= 1}
-                        className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-3 py-2 disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-surface px-3 py-2 disabled:opacity-50"
                       >
                         <ChevronLeft className="h-4 w-4" /> Previous
                       </button>
@@ -688,7 +688,7 @@ function App() {
                       <button
                         onClick={() => void loadReviews(reviewPage + 1)}
                         disabled={reviewPage >= Math.ceil(reviewTotal / 25)}
-                        className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-3 py-2 disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-surface px-3 py-2 disabled:opacity-50"
                       >
                         Next <ChevronRight className="h-4 w-4" />
                       </button>
@@ -699,11 +699,11 @@ function App() {
             </>
           ) : null}
 
-          <div className="border-t border-slate-200 bg-white px-4 py-4">
+          <div className="border-t border-slate-200 bg-surface px-4 py-4">
             <div className="space-y-3">
               {transcript.map((message) => (
                 <div key={message.id} className="rounded-xl border border-slate-200 bg-slate-50/60">
-                  <div className="border-b border-slate-200 bg-white/70 px-4 py-3 text-xs font-medium uppercase tracking-[0.12em] text-slate-500">
+                  <div className="border-b border-slate-200 bg-surface/70 px-4 py-3 text-xs font-medium uppercase tracking-[0.12em] text-slate-500">
                     {message.role === 'question' ? 'Question' : 'Analysis'}
                     <span className="ml-2 font-normal normal-case tracking-normal text-slate-400">
                       • {message.timestamp}
@@ -712,7 +712,7 @@ function App() {
 
                   <div className={`px-4 py-4 ${message.status === 'refused' ? 'bg-amber-50' : ''}`}>
                     <div className="flex gap-3">
-                      <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-md bg-[#eef1ff] text-[#5b4ad9]">
+                      <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-md bg-brand-soft text-brand-ink">
                         {message.status === 'refused' ? (
                           <ShieldAlert className="h-4 w-4 text-amber-700" />
                         ) : message.role === 'question' ? (
@@ -733,9 +733,9 @@ function App() {
                             </div>
                             <div className="grid gap-3 md:grid-cols-3">
                               {message.evidence.slice(0, 3).map((review) => (
-                                <div key={review.review_id} className="rounded-lg border border-slate-200 bg-white p-3">
+                                <div key={review.review_id} className="rounded-lg border border-slate-200 bg-surface p-3">
                                   <div className="mb-2 flex items-center justify-between">
-                                    <div className="flex items-center gap-1 text-[#f5b301] text-xs">
+                                    <div className="flex items-center gap-1 text-star text-xs">
                                       {getStars(review.rating).map((star, idx) => (
                                         <span key={`${message.id}-${review.review_id}-${idx}`}>{star}</span>
                                       ))}
@@ -749,7 +749,7 @@ function App() {
                                         href={safeExternalUrl(review.review_url) ?? undefined}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="inline-flex items-center gap-1 text-[#5b4ad9] hover:underline"
+                                        className="inline-flex items-center gap-1 text-brand-ink hover:underline"
                                       >
                                         Review {review.review_id.slice(0, 8)}
                                         <ExternalLink className="h-3 w-3" />
@@ -773,7 +773,7 @@ function App() {
 
           <div className="border-t border-slate-200 bg-slate-50 px-4 py-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-              <div className="relative flex-1 rounded-xl border border-slate-200 bg-white px-3">
+              <div className="relative flex-1 rounded-xl border border-slate-200 bg-surface px-3">
                 <textarea
                   value={question}
                   onChange={(event) => setQuestion(event.target.value)}
@@ -790,7 +790,7 @@ function App() {
               </div>
               <button
                 onClick={() => void askQuestion()}
-                className="inline-flex h-12 items-center justify-center rounded-xl bg-[#5b4ad9] px-4 text-white shadow-sm transition hover:bg-[#4f41cc]"
+                className="inline-flex h-12 items-center justify-center rounded-xl bg-brand px-4 text-brand-contrast shadow-sm transition hover:bg-brand-strong"
                 disabled={!analysis || asking || loading || refreshing || !question.trim()}
                 aria-label="Submit question"
               >
@@ -807,7 +807,7 @@ function App() {
                   key={prompt}
                   onClick={() => void askQuestion(prompt)}
                   disabled={!analysis || asking || loading || refreshing}
-                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                  className="rounded-full border border-slate-200 bg-surface px-3 py-1.5 text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
                 >
                   {prompt}
                 </button>
@@ -816,10 +816,10 @@ function App() {
           </div>
         </section>
 
-        <aside className="hidden w-[320px] shrink-0 rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:block">
+        <aside className="hidden w-[320px] shrink-0 rounded-xl border border-slate-200 bg-surface p-4 shadow-sm lg:block">
           <div className="mb-4 flex items-center justify-between">
             <div className="text-sm font-semibold uppercase tracking-wide text-slate-500">Current analysis scope</div>
-            <button className="inline-flex items-center gap-1 rounded-full bg-[#eef1ff] px-2 py-1 text-xs font-medium text-[#5b4ad9]">
+            <button className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2 py-1 text-xs font-medium text-brand-ink">
               <MessageSquareText className="h-3.5 w-3.5" />
               Active
             </button>
@@ -850,9 +850,9 @@ function App() {
                 </div>
               </div>
 
-              <div className="mt-4 rounded-xl border border-[#f7d57a] bg-[#fff8df] p-3 text-sm text-slate-700">
+              <div className="mt-4 rounded-xl border border-warning bg-warning-soft p-3 text-sm text-slate-700">
                 <div className="flex items-center gap-2 font-semibold text-slate-800">
-                  <ShieldAlert className="h-4 w-4 text-[#b97300]" />
+                  <ShieldAlert className="h-4 w-4 text-warning-ink" />
                   This AI answers questions only from this dataset.
                 </div>
               </div>

@@ -2,12 +2,91 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme colors as space-separated RGB channels so Tailwind opacity modifiers work. */
+:root {
+  color-scheme: light dark;
+
+  --color-canvas: 243 244 246;
+  --color-surface: 255 255 255;
+
+  --color-slate-50: 248 250 252;
+  --color-slate-100: 241 245 249;
+  --color-slate-200: 226 232 240;
+  --color-slate-300: 203 213 225;
+  --color-slate-400: 148 163 184;
+  --color-slate-500: 100 116 139;
+  --color-slate-600: 71 85 105;
+  --color-slate-700: 51 65 85;
+  --color-slate-800: 30 41 59;
+  --color-slate-900: 15 23 42;
+
+  --color-amber-50: 255 251 235;
+  --color-amber-200: 253 230 138;
+  --color-amber-700: 180 83 9;
+  --color-amber-800: 146 64 14;
+
+  --color-rose-50: 255 241 242;
+  --color-rose-100: 255 228 230;
+  --color-rose-200: 254 205 211;
+  --color-rose-700: 190 18 60;
+
+  --color-emerald-700: 4 120 87;
+
+  --color-brand: 91 74 217;
+  --color-brand-strong: 79 65 204;
+  --color-brand-soft: 238 241 255;
+  --color-brand-ink: 91 74 217;
+  --color-brand-contrast: 255 255 255;
+
+  --color-warning: 247 213 122;
+  --color-warning-soft: 255 248 223;
+  --color-warning-ink: 185 115 0;
+  --color-star: 245 179 1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-canvas: 2 6 23;
+    --color-surface: 15 23 42;
+
+    --color-slate-50: 23 32 51;
+    --color-slate-100: 30 41 59;
+    --color-slate-200: 51 65 85;
+    --color-slate-300: 71 85 105;
+    --color-slate-400: 139 153 175;
+    --color-slate-500: 160 174 192;
+    --color-slate-600: 203 213 225;
+    --color-slate-700: 226 232 240;
+    --color-slate-800: 241 245 249;
+    --color-slate-900: 248 250 252;
+
+    --color-amber-50: 42 33 16;
+    --color-amber-200: 113 63 18;
+    --color-amber-700: 251 191 36;
+    --color-amber-800: 252 211 77;
+
+    --color-rose-50: 45 20 24;
+    --color-rose-100: 76 29 36;
+    --color-rose-200: 136 19 55;
+    --color-rose-700: 253 164 175;
+
+    --color-emerald-700: 110 231 183;
+
+    --color-brand-soft: 42 38 80;
+    --color-brand-ink: 169 159 248;
+
+    --color-warning: 113 63 18;
+    --color-warning-soft: 42 33 16;
+    --color-warning-ink: 251 191 36;
+  }
+}
+
 :root {
   font-family: Inter, 'Segoe UI', sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #111827;
-  background: #f3f4f6;
+  color: rgb(var(--color-slate-900));
+  background: rgb(var(--color-canvas));
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -15,7 +94,7 @@
 }
 
 html {
-  background: #f3f4f6;
+  background: rgb(var(--color-canvas));
 }
 
 body {
