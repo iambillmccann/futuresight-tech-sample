@@ -350,4 +350,6 @@ Tests use deterministic provider and model doubles; CI never depends on live Ser
 - The frontend transcript exists only in the open page and is reset when the active source changes.
 - Provider account quotas are authoritative; ReviewLens surfaces safe errors rather than implementing a second quota system.
 - Amazon support is a limited product-page sample, not full review-history ingestion. Only `amazon.com` is enabled.
+
+The AWS deployment was taken down on 19 Oct 2026 9am ET.
 - Review browsing, manual refresh, and CSV/Markdown exports operate on the current process-local cache and do not create saved analyses or durable history.
